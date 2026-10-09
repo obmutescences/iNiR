@@ -34,7 +34,8 @@ Item {
 
     CavaProcess {
         id: cava
-        active: root.active && (MprisController.activePlayer?.isPlaying ?? false)
+        // active: root.active && (MprisController.activePlayer?.isPlaying ?? false)
+        active: root.active
         sampleCount: 16
     }
     FrameAnimation {
