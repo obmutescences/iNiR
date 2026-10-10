@@ -1678,8 +1678,16 @@ apply_niri_app_environment() {
     [[ -n "$cfg" ]] || return 0
 
     local name value
+    # Input-method selectors belong here: they live only in Niri's environment
+    # block, never in the systemd session environment, so a shell started as
+    # inir.service (not a Niri child) loses them. Qt apps then fall back to an
+    # input context that never reaches fcitx5 — WeChat launched from the shell
+    # accepts no Chinese, while the same app started from a terminal (Niri's
+    # own spawn, full environment block) works.
     for name in XDG_MENU_PREFIX QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME \
-                QT_STYLE_OVERRIDE ELECTRON_OZONE_PLATFORM_HINT; do
+                QT_STYLE_OVERRIDE ELECTRON_OZONE_PLATFORM_HINT \
+                QT_IM_MODULE GTK_IM_MODULE SDL_IM_MODULE GLFW_IM_MODULE \
+                XMODIFIERS; do
         value="$(_niri_app_environment_value "$name" "$cfg")"
         [[ -n "$value" ]] && export "${name}=${value}"
     done
