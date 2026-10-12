@@ -1888,6 +1888,23 @@ apply_qt_runtime_env() {
                     *) _qs_merged="${_qs_merged}:${_qs_p}" ;;
                 esac
             done
+            # Keep what this process already had. On a packaged install those entries are the
+            # runtime deps the wrapper put on PATH (imagemagick, qalc, ddcutil, gum, …) that the
+            # manager's session PATH does not carry: replacing PATH outright dropped every tool
+            # the shell shells out to, so wallpaper thumbnails (`magick`) and the calculator
+            # silently stopped working. Manager entries stay first, so nothing that already
+            # resolved changes target.
+            local -a _qs_prev_parts=()
+            IFS=':' read -ra _qs_prev_parts <<< "${PATH:-}"
+            local _qs_prev_entry
+            for _qs_prev_entry in "${_qs_prev_parts[@]}"; do
+                if [[ -n "$_qs_prev_entry" ]]; then
+                    case ":${_qs_merged}:" in
+                        *":${_qs_prev_entry}:"*) ;;
+                        *) _qs_merged="${_qs_merged}:${_qs_prev_entry}" ;;
+                    esac
+                fi
+            done
             export PATH="$_qs_merged"
         fi
     fi
