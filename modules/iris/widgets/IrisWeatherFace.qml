@@ -74,7 +74,7 @@ IrisWidgetFace {
             Layout.fillWidth: true
             visible: root.range.length > 0 || Weather.stale
             text: !Weather.stale ? root.range
-                : !Network.online ? Translation.tr("Offline · %1").arg(Weather.updatedLabel)
+                : Weather.offline ? Translation.tr("Offline · %1").arg(Weather.updatedLabel)
                 : Translation.tr("Updated %1").arg(Weather.updatedLabel)
             color: Weather.stale ? root.inkTertiary : root.inkSecondary
             size: 12
@@ -139,7 +139,7 @@ IrisWidgetFace {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
             text: !Weather.enabled ? Translation.tr("Weather is off")
-                : !Network.online ? Network.offlineReason
+                : Weather.offline ? Translation.tr("Network error. Check your internet connection.")
                 : Translation.tr("Looking for the sky…")
             color: root.inkSecondary
             size: 12.5

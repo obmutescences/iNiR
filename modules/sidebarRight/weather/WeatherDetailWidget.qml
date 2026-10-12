@@ -673,7 +673,7 @@ Item {
         // ── Footer ───────────────────────────────────────────────────────
         StyledText {
             Layout.alignment: Qt.AlignHCenter
-            text: Network.online ? Translation.tr("Updated %1").arg(Weather.updatedLabel)
+            text: !Weather.offline ? Translation.tr("Updated %1").arg(Weather.updatedLabel)
                 : Translation.tr("Offline · from %1").arg(Weather.updatedLabel)
             font.pixelSize: Appearance.font.pixelSize.smaller
             color: root.colSub

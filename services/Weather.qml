@@ -415,7 +415,14 @@ Singleton {
     function fetchWeatherFallback(): void {
         const lat = root.location.lat
         const lon = root.location.lon
-        if ((lat === 0 && lon === 0) || openMeteoFetcher.running) {
+        if (lat === 0 && lon === 0) {
+            // The primary provider already failed and the fallback needs coordinates
+            // we never resolved, so this attempt reached nothing.
+            root.offline = true
+            retryTimer.start()
+            return
+        }
+        if (openMeteoFetcher.running) {
             retryTimer.start()
             return
         }
@@ -484,7 +491,6 @@ Singleton {
 
     // Resolve location: manual coords > manual city > GPS > IP auto-detect
     function resolveLocation(): void {
-        if (!Network.online) return;
         if (gpsLocator.running || ipLocator.running || fallbackLocator.running
                 || forwardGeocoder.running || reverseGeocoder.running || fetcher.running) {
             return;
@@ -515,7 +521,7 @@ Singleton {
             console.info("[Weather] Using manual city:", root.redactedLogLocationName(root.configCity));
             const q = encodeURIComponent(root.configCity);
             forwardGeocoder.command = ["/usr/bin/curl", "-s", "--max-time", "10",
-                "https://nominatim.openstreetmap.org/search?format=jsonv2&q=" + q + "&limit=5&addressdetails=1&accept-language=es,en"];
+                "https://nominatim.openstreetmap.org/search?format=jsonv2&q=" + q + "&limit=5&addressdetails=1&accept-language=en"];
             forwardGeocoder.running = true;
             return;
         }
@@ -567,8 +573,15 @@ Singleton {
     // Epoch ms of the last successful refresh; kept across restarts through the cache.
     property double lastUpdated: 0
     readonly property bool hasData: lastUpdated > 0
-    // Shown data that is not current: no internet, or older than two refresh intervals.
-    readonly property bool stale: hasData && (!Network.online || (_clockTick, Date.now() - lastUpdated > 2 * Math.max(root.fetchInterval, 600000)))
+    // True when the last refresh attempt reached no provider. Weather judges this from
+    // its own requests instead of NetworkManager's connectivity state: NM reports
+    // "limited" on hosts whose uplink it does not manage (or when its connectivity
+    // check is unavailable), which would otherwise keep the widget empty forever on a
+    // working connection.
+    property bool offline: false
+    // Shown data that is not current: the last attempt failed, or the data is older
+    // than two refresh intervals.
+    readonly property bool stale: hasData && (root.offline || (_clockTick, Date.now() - lastUpdated > 2 * Math.max(root.fetchInterval, 600000)))
 
     // When the shown data was fetched: the time today, the weekday and time before that.
     readonly property string updatedLabel: {
@@ -580,6 +593,7 @@ Singleton {
     }
 
     function _stamp(): void {
+        root.offline = false
         root.lastUpdated = Date.now()
         weatherCache.setText(JSON.stringify({ savedAt: root.lastUpdated, data: root.data }))
     }
@@ -610,7 +624,6 @@ Singleton {
     }
 
     function getData(): void {
-        if (!Network.online) return;
         if (root.location.valid) {
             fetchWeather();
         } else {
@@ -649,7 +662,7 @@ Singleton {
         interval: Math.min(5000 * Math.pow(2, root._retryCount), 80000)
         repeat: false
         onTriggered: {
-            if (root._retryCount < 5 && Network.online) {
+            if (root._retryCount < 5) {
                 root._retryCount++;
                 console.info("[Weather] Retry attempt", root._retryCount);
                 if (!root.location.valid) {
@@ -1073,6 +1086,7 @@ Singleton {
             onStreamFinished: {
                 const payload = text.trim()
                 if (payload.length === 0) {
+                    root.offline = true
                     retryTimer.start()
                     return
                 }
@@ -1081,6 +1095,7 @@ Singleton {
                     root._emptyResponseCount = 0
                 } catch (e) {
                     console.warn("[Weather] Open-Meteo parse error:", e.message)
+                    root.offline = true
                     retryTimer.start()
                 }
             }
@@ -1088,6 +1103,7 @@ Singleton {
         onExited: (code) => {
             if (code !== 0) {
                 console.warn("[Weather] Open-Meteo fetch failed, code:", code)
+                root.offline = true
                 retryTimer.start()
             }
         }

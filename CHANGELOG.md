@@ -5,6 +5,12 @@ All notable changes to iNiR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Weather on a connection NetworkManager calls `limited`**: the widget now judges connectivity from its own requests instead of NetworkManager's check, which reports `limited` on machines whose uplink NM does not manage — there it left every weather surface empty on a working connection, and no manual location was ever looked up. Offline and stale states follow the last refresh attempt, and the last forecast is kept either way.
+- **Weather geocoding in Spanish**: the city lookup asked Nominatim for `es,en`, so a manual city could come back under its Spanish name (GuangZhou → Cantón). It asks in English now.
+
 ## [2.33.0] - 2026-10-08
 
 **iRiS 0.3**
