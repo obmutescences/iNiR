@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Open-Meteo is the weather source now**: it follows high-resolution regional models, so it tracks local conditions much more closely than wttr.in's coarse global reading, which could sit several degrees and a whole condition away from what your phone shows. wttr.in stays as the fallback, and as the only option when the location never resolves to coordinates. UV comes from Open-Meteo too, and visibility reads in km or mi instead of the API's raw metres.
+
 ### Fixed
 - **Weather on a connection NetworkManager calls `limited`**: the widget now judges connectivity from its own requests instead of NetworkManager's check, which reports `limited` on machines whose uplink NM does not manage — there it left every weather surface empty on a working connection, and no manual location was ever looked up. Offline and stale states follow the last refresh attempt, and the last forecast is kept either way.
 - **Weather geocoding in Spanish**: the city lookup asked Nominatim for `es,en`, so a manual city could come back under its Spanish name (GuangZhou → Cantón). It asks in English now.
