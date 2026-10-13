@@ -665,6 +665,7 @@ def build_app_palette(base_palette: dict[str, str]) -> dict[str, str]:
 
 darkmode = args.mode == "dark"
 transparent = args.transparency == "transparent"
+colors = None  # the wallpaper's quantised colours, when the palette is drawn from an image
 
 if args.path is not None:
     image = Image.open(args.path)
@@ -854,9 +855,65 @@ if args.surface_seed and re.fullmatch(r"#?[0-9A-Fa-f]{6}", args.surface_seed.str
         background = hex_to_argb(material_colors.get("background", material_colors.get("surface")))
         for key in ("primary", "secondary", "tertiary"):
             if key in material_colors:
-                argb = ensure_contrast(hex_to_argb(material_colors[key]), worst, 3.0, bool(darkmode), 94.0 if darkmode else 8.0)
-                argb = ensure_contrast(argb, background, 4.5, bool(darkmode), 94.0 if darkmode else 8.0)
-                material_colors[key] = argb_to_hex(argb)
+                adjusted = ensure_contrast(hex_to_argb(material_colors[key]), worst, 3.0, bool(darkmode), 94.0 if darkmode else 8.0)
+                adjusted = ensure_contrast(adjusted, background, 4.5, bool(darkmode), 94.0 if darkmode else 8.0)
+                material_colors[key] = argb_to_hex(adjusted)
+
+def oklch_of(argb: int) -> tuple[float, float, float]:
+    """sRGB -> OKLCH (L 0..1, C, H in degrees): the space scripts/colors/washi solves in."""
+
+    def linear(channel: float) -> float:
+        return channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+
+    r, g, b = (linear(((argb >> shift) & 0xFF) / 255.0) for shift in (16, 8, 0))
+    long_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+    medium = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+    short = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+    lightness = 0.2104542553 * long_ + 0.7936177850 * medium - 0.0040720468 * short
+    a = 1.9779984951 * long_ - 2.4285922050 * medium + 0.4505937099 * short
+    b_ = 0.0259040371 * long_ + 0.7827717662 * medium - 0.8086757660 * short
+    return lightness, math.hypot(a, b_), math.degrees(math.atan2(b_, a)) % 360.0
+
+
+def hue_distance(hue_a: float, hue_b: float) -> float:
+    """How far apart two hues are, the short way round the wheel."""
+    delta = abs(hue_a - hue_b) % 360.0
+    return min(delta, 360.0 - delta)
+
+
+def second_wallpaper_seed(quantized: dict | None, seed_argb: int) -> str | None:
+    """The second colour the wallpaper actually shows, for iRiS's `wallpaper` highlight.
+
+    Every Material role is read from the one colour the quantiser scored highest, so
+    `secondary` is a desaturated companion of that seed's hue and never a second hue the
+    picture carries. iRiS reads `iris-seeds.json`'s `secondary` for its `wallpaper`
+    highlight and the widgets' third data colour, so the second hue is what it gets here:
+    the heaviest band of hue clear of the seed's, its most saturated member. A band is 20
+    degrees wide, and one within 30 degrees of the seed does not count, a colour beside the
+    seed being no second colour. None when the picture holds one hue, or too little of
+    anything else (under 0.5 % of the pixels) to call that a colour.
+    """
+    if not quantized:
+        return None
+    _, _, seed_hue = oklch_of(seed_argb)
+    bands: dict[int, dict] = {}
+    for argb, population in quantized.items():
+        lightness, chroma, hue = oklch_of(argb)
+        if chroma < 0.03 or lightness < 0.08 or lightness > 0.95:
+            continue
+        band = bands.setdefault(int(hue // 20) * 20, {"weight": 0.0, "population": 0, "best": None})
+        band["weight"] += population * min(chroma, 0.25)
+        band["population"] += population
+        if band["best"] is None or chroma > band["best"][1]:
+            band["best"] = (argb, chroma, hue)
+    apart = [band for band in bands.values() if hue_distance(band["best"][2], seed_hue) >= 30.0]
+    if not apart:
+        return None
+    winner = max(apart, key=lambda band: band["weight"])
+    if winner["population"] < sum(quantized.values()) * 0.005:
+        return None
+    return argb_to_hex(winner["best"][0])
+
 
 # iRiS: the shell's palette (scripts/colors/washi) already solved every role against every surface of its ramp. The apps
 # wear it as it is, so window, sidebar, text and accent are the shell's own colours, not a second reading of the seed.
@@ -867,6 +924,10 @@ if args.washi_roles:
         seeds_path = os.path.join(os.path.dirname(args.washi_roles), "iris-seeds.json")
         seeds = {k: material_colors.get(k, "") for k in ("primary", "secondary", "tertiary")}
         seeds["background"] = seed_background
+        # The second colour the wallpaper shows, in place of the seed's own desaturated companion.
+        second = second_wallpaper_seed(colors, argb)
+        if second:
+            seeds["secondary"] = second
         seeds_text = json.dumps(seeds)
         try:
             with open(seeds_path) as f:
