@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.functions
@@ -28,19 +27,7 @@ StyledImage {
     property string thumbnailPath: {
         if (sourcePath.length === 0) return ""
         if (root._ownsStill) return Wallpapers.videoStillPath(sourcePath)
-
-        let cleanPath = FileUtils.trimFileProtocol(String(sourcePath ?? ""))
-        if (!cleanPath.startsWith("/"))
-            cleanPath = Quickshell.env("PWD") + "/" + cleanPath
-
-        const encodedParts = cleanPath.split("/").map(part => {
-            return encodeURIComponent(part).replace(/[!'()*]/g, function(c) {
-                return '%' + c.charCodeAt(0).toString(16)
-            })
-        })
-
-        const md5Hash = Qt.md5("file://" + encodedParts.join("/"))
-        return `${Directories.genericCache}/thumbnails/${thumbnailSizeName}/${md5Hash}.png`
+        return Wallpapers.getExpectedThumbnailPath(sourcePath, root.thumbnailSizeName || "large")
     }
     source: resolvedThumbnailSource
 
@@ -101,7 +88,7 @@ StyledImage {
 
         root._clearResolvedThumbnail()
         root._pendingCheck = normalizedThumbnailPath
-        Wallpapers.requestThumbnailCheck(normalizedThumbnailPath)
+        Wallpapers.requestThumbnailCheck(normalizedThumbnailPath, root.sourcePath)
     }
 
     onStatusChanged: {

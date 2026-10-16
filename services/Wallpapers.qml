@@ -464,14 +464,31 @@ Singleton {
     property string thumbgenScriptPath: `${FileUtils.trimFileProtocol(Directories.scriptPath)}/thumbnails/thumbgen-venv.sh`
     property string generateThumbnailsMagickScriptPath: `${FileUtils.trimFileProtocol(Directories.scriptPath)}/thumbnails/generate-thumbnails-magick.sh`
     
-    // Calculate standard Freedesktop thumbnail path
+    // iNiR's own thumbnail cache, not the shared freedesktop one.
+    //
+    // Every program on the desktop writes ~/.cache/thumbnails/<size>/<md5 of the file
+    // URI>.png, so an entry there is not necessarily ours and not necessarily this
+    // file's picture. A folder renumbered under its own names left entries holding
+    // another wallpaper's image: the picker's tiles read that entry while the hero
+    // preview read the real file, and neither a restart nor a regeneration could help,
+    // because every generator skips a thumbnail that already exists.
+    //
+    // The key is the file's URI, so a rename or a move is a new entry and an old one is
+    // never read. A file *replaced* under the same name is not a new key, which is what
+    // the identity recorded in the entry (see thumbnailIdentityFlags) is for.
+    readonly property string thumbnailCacheRoot: `${Directories.stateUserPath}/generated/wallpaper/thumbs`
+
+    // The identity an entry is made from: the source's mtime and byte size, written into the
+    // PNG as text. Both are read back before an entry is trusted, so a wallpaper replaced
+    // under the same name cannot be served its predecessor's picture.
+
     // size: "normal" (128), "large" (256), "x-large" (512), "xx-large" (1024)
     function getExpectedThumbnailPath(filePath: string, size = "large"): string {
         if (!filePath) return ""
         // Ensure path is absolute and clean
         let cleanPath = FileUtils.trimFileProtocol(filePath)
         if (!cleanPath.startsWith("/")) cleanPath = Quickshell.env("PWD") + "/" + cleanPath
-        
+
         // Encode URI path segments (similar to python urllib.parse.quote(p, safe=""))
         // JS encodeURIComponent encodes everything except A-Za-z0-9-_.!~*'()
         // We need to match Python's behavior for strict path encoding
@@ -484,10 +501,9 @@ Singleton {
             });
         })
         const url = "file://" + encodedParts.join("/")
-        
+
         const md5Hash = MD5.hash(url)
-        const cacheDir = Quickshell.env("HOME") + "/.cache/thumbnails/" + size
-        return cacheDir + "/" + md5Hash + ".png"
+        return `${root.thumbnailCacheRoot}/${size}/${md5Hash}.png`
     }
 
     property alias directory: folderModel.folder
@@ -538,31 +554,62 @@ Singleton {
         return !!root._failedThumbnailOutputs[FileUtils.trimFileProtocol(String(outputPath ?? ""))]
     }
 
-    // Whether thumbnails exist is asked for many paths per process, never one process per tile:
-    // a folder of a few hundred wallpapers used to start a few hundred `test -f` at once and ran
-    // the shell out of file descriptors.
+    // Whether a thumbnail exists *and* was made from the file as it is now is asked for many
+    // paths per process, never one process per tile: a folder of a few hundred wallpapers
+    // used to start a few hundred `test -f` at once and ran the shell out of file
+    // descriptors. The same two batches answer freshness: one `stat` over the sources, one
+    // `identify` over the entries, both over the whole chunk.
     signal thumbnailsChecked(var found)
     property var _thumbnailCheckQueue: ({})
     property int _thumbnailCheckRetryMs: 0
-    function requestThumbnailCheck(outputPath: string): void {
+    // The entry is only trusted for the file it was made from. An entry that records no
+    // identity (a video's still frame, or one written before this) is taken as it always
+    // was, so nothing that already worked changes its mind.
+    readonly property string thumbnailCheckScript: `
+        sources=(); thumbs=()
+        while [ $# -gt 0 ]; do sources+=("$1"); thumbs+=("$2"); shift 2; done
+        [ \${#sources[@]} -gt 0 ] || { echo __done__; exit 0; }
+        declare -A current=() recorded=()
+        while IFS='|' read -r name mtime size; do current["$name"]="$mtime|$size"; done < <(stat -c '%n|%Y|%s' "\${sources[@]}" 2>/dev/null)
+        present=()
+        for thumb in "\${thumbs[@]}"; do [ -s "$thumb" ] && present+=("$thumb"); done
+        if [ \${#present[@]} -gt 0 ]; then
+            while IFS='|' read -r name mtime size; do recorded["$name"]="$mtime|$size"; done < <(identify -format '%d/%f|%[Thumb::MTime]|%[Thumb::Size]\n' "\${present[@]}" 2>/dev/null)
+        fi
+        for i in "\${!thumbs[@]}"; do
+            thumb="\${thumbs[$i]}"; source="\${sources[$i]}"
+            [ -s "$thumb" ] || continue
+            identity="\${recorded[$thumb]}"
+            if [ -z "\${identity%%|*}" ] || [ -z "\${identity##*|}" ] || [ "$identity" = "\${current[$source]}" ]; then
+                printf '%s\n' "$thumb"
+            fi
+        done
+        echo __done__
+    `
+    function requestThumbnailCheck(outputPath: string, sourcePath: string): void {
         const normalizedPath = FileUtils.trimFileProtocol(String(outputPath ?? ""))
         if (!normalizedPath) return
-        root._thumbnailCheckQueue[normalizedPath] = true
+        root._thumbnailCheckQueue[normalizedPath] = FileUtils.trimFileProtocol(String(sourcePath ?? ""))
         if (!thumbnailCheckProc.running && !thumbnailCheckRetry.running) thumbnailCheckFlush.restart()
     }
     function _runThumbnailCheck(): void {
         if (thumbnailCheckProc.running) return
-        const paths = Object.keys(root._thumbnailCheckQueue).slice(0, 400)
-        if (paths.length === 0) return
-        paths.forEach(path => delete root._thumbnailCheckQueue[path])
-        thumbnailCheckProc.paths = paths
+        const thumbs = Object.keys(root._thumbnailCheckQueue).slice(0, 400)
+        if (thumbs.length === 0) return
+        const pairs = thumbs.map(thumb => ({ source: root._thumbnailCheckQueue[thumb] ?? "", thumb: thumb }))
+        const args = []
+        pairs.forEach(pair => {
+            args.push(pair.source, pair.thumb)
+            delete root._thumbnailCheckQueue[pair.thumb]
+        })
+        thumbnailCheckProc.pairs = pairs
         thumbnailCheckProc.lines = []
         thumbnailCheckProc.finished = false
-        thumbnailCheckProc.command = ["sh", "-c", 'for p do [ -s "$p" ] && printf "%s\\n" "$p"; done; echo __done__', "sh"].concat(paths)
+        thumbnailCheckProc.command = ["bash", "-c", root.thumbnailCheckScript, "bash"].concat(args)
         thumbnailCheckProc.running = true
     }
-    function _requeueThumbnailCheck(paths: var): void {
-        paths.forEach(path => root._thumbnailCheckQueue[path] = true)
+    function _requeueThumbnailCheck(pairs: var): void {
+        pairs.forEach(pair => root._thumbnailCheckQueue[pair.thumb] = pair.source)
         root._thumbnailCheckRetryMs = Math.min(8000, Math.max(1000, root._thumbnailCheckRetryMs * 2))
         thumbnailCheckRetry.interval = root._thumbnailCheckRetryMs
         thumbnailCheckRetry.restart()
@@ -571,7 +618,7 @@ Singleton {
     Timer { id: thumbnailCheckRetry; onTriggered: root._runThumbnailCheck() }
     Process {
         id: thumbnailCheckProc
-        property var paths: []
+        property var pairs: []
         property var lines: []
         property bool finished: false
         stdout: SplitParser {
@@ -579,19 +626,19 @@ Singleton {
         }
         onExited: (exitCode, exitStatus) => {
             thumbnailCheckProc.finished = true
-            const paths = thumbnailCheckProc.paths
+            const pairs = thumbnailCheckProc.pairs
             if (!thumbnailCheckProc.lines.includes("__done__")) {
-                root._requeueThumbnailCheck(paths)
+                root._requeueThumbnailCheck(pairs)
                 return
             }
             root._thumbnailCheckRetryMs = 0
             const existing = new Set(thumbnailCheckProc.lines)
             const found = {}
             const nextKnown = Object.assign({}, root._knownThumbnailOutputs)
-            paths.forEach(path => {
-                found[path] = existing.has(path)
-                if (found[path]) nextKnown[path] = true
-                else delete nextKnown[path]
+            pairs.forEach(pair => {
+                found[pair.thumb] = existing.has(pair.thumb)
+                if (found[pair.thumb]) nextKnown[pair.thumb] = true
+                else delete nextKnown[pair.thumb]
             })
             root._knownThumbnailOutputs = nextKnown
             root.thumbnailsChecked(found)
@@ -604,7 +651,7 @@ Singleton {
     Timer {
         id: thumbnailCheckStartGuard
         interval: 0
-        onTriggered: if (!thumbnailCheckProc.finished) root._requeueThumbnailCheck(thumbnailCheckProc.paths)
+        onTriggered: if (!thumbnailCheckProc.finished) root._requeueThumbnailCheck(thumbnailCheckProc.pairs)
     }
 
     function load() {}
@@ -1263,20 +1310,27 @@ Singleton {
 
         const item = root._singleThumbQueue.shift()
         const maxSize = Images.thumbnailSizes[item.size] ?? 256
-        const outputDir = FileUtils.parentDirectory(item.outputPath)
         // 0: it was already there · 10: made now · anything else: the source could not be read.
-        // Paths go in as arguments, never pasted into the script.
+        // Paths go in as arguments, never pasted into the script. The entry records the
+        // source's mtime and size and is only reused for that exact file: a wallpaper
+        // replaced under the same name is made again rather than served its predecessor.
+        const identity = 'identity="$(stat -c \'%Y|%s\' "$1" 2>/dev/null)" || exit 20; '
+        const fresh = 'if [ "$4" != 1 ] && [ -s "$2" ]; then '
+            + 'recorded="$(identify -format \'%[Thumb::MTime]|%[Thumb::Size]\' "$2" 2>/dev/null)"; '
+            + '[ -z "$recorded" ] || [ "$recorded" = "$identity" ] && exit 0; fi; '
+        const record = ' -define png:include-chunk=tEXt'
+            + ' -set "Thumb::MTime" "${identity%%|*}" -set "Thumb::Size" "${identity##*|}"'
         const script = 'mkdir -p "$(dirname "$2")" || exit 20; '
-            + 'if [ "$4" != 1 ] && [ -s "$2" ]; then exit 0; fi; rm -f "$2"; '
+            + identity + fresh + 'rm -f "$2"; '
             + (root.isVideoFile(item.filePath)
                 ? 'ffmpeg -hide_banner -loglevel error -y -i "$1" -vf "thumbnail=n=100,scale=\'min($3,iw)\':\'min($3,ih)\':force_original_aspect_ratio=decrease" -frames:v 1 -update 1 "$2" >/dev/null 2>&1'
-                : 'magick "$1[0]" -resize "${3}x${3}" "$2" >/dev/null 2>&1')
+                : 'magick "$1[0]" -resize "${3}x${3}"' + record + ' "$2" >/dev/null 2>&1')
             + ' && [ -s "$2" ] && exit 10; rm -f "$2"; exit 20'
 
         _singleThumbProc._key = item.key
         _singleThumbProc._filePath = item.filePath
         _singleThumbProc._outputPath = item.outputPath
-        _singleThumbProc.command = ["sh", "-c", script, "sh", item.filePath, item.outputPath, String(maxSize), item.replace ? "1" : "0"]
+        _singleThumbProc.command = ["bash", "-c", script, "bash", item.filePath, item.outputPath, String(maxSize), item.replace ? "1" : "0"]
         _singleThumbProc.running = true
     }
 
@@ -1293,7 +1347,9 @@ Singleton {
             if (thumbgenProc.running) return
             thumbgenProc.directory = root._pendingThumbnailDir
             thumbgenProc._size = root._pendingThumbnailSize
-            thumbgenProc.command = [thumbgenScriptPath, "--size", root._pendingThumbnailSize, "--workers", "4", "--machine_progress", "-d", root._pendingThumbnailDir]
+            thumbgenProc.command = [thumbgenScriptPath, "--size", root._pendingThumbnailSize,
+                "--cache-dir", root.thumbnailCacheRoot, "--workers", "4", "--machine_progress",
+                "-d", root._pendingThumbnailDir]
             root.thumbnailGenerationProgress = 0
             thumbgenProc.running = true
         }
@@ -1317,7 +1373,8 @@ Singleton {
         }
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
-                thumbgenFallbackProc.command = [generateThumbnailsMagickScriptPath, "--size", thumbgenProc._size, "-d", FileUtils.trimFileProtocol(thumbgenProc.directory)]
+                thumbgenFallbackProc.command = [generateThumbnailsMagickScriptPath, "--size", thumbgenProc._size,
+                    "--cache-dir", root.thumbnailCacheRoot, "-d", FileUtils.trimFileProtocol(thumbgenProc.directory)]
                 thumbgenFallbackProc.running = true
                 return
             }

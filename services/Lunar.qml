@@ -10,7 +10,7 @@ import Quickshell.Io
  *
  * ccal answers one month at a time, so a single request serves every day in it and the
  * answer is kept: the Island asks on every clock tick, and a process per tick for a name
- * that changes at midnight would be waste. A missing ccal is not an error — the day name
+ * that changes at midnight would be waste. A missing ccal is not an error — the lunar name
  * is empty and callers keep to the Gregorian date.
  */
 Singleton {
@@ -34,11 +34,18 @@ Singleton {
     function monthKey(year: int, month: int): string {
         return year + "-" + root.pad2(month)
     }
-    // The lunar day name ("初七"), or "" while the month is still coming or without ccal.
-    function dayName(date): string {
+    // The lunar day with its month ("九月-初七"), or "" while the month is still coming or
+    // without ccal. The month is read per day, not per request: one Gregorian month holds
+    // the tail of one lunar month and the head of the next, so 八月 and 九月 both appear in
+    // October and only the day tells them apart.
+    function lunarName(date): string {
         if (!date) return ""
         const month = root.months[root.monthKey(date.getFullYear(), date.getMonth() + 1)]
-        return String(month?.[String(date.getDate())] ?? "")
+        const entry = month?.[String(date.getDate())]
+        if (!entry) return ""
+        const day = String(entry.day ?? "")
+        const name = String(entry.month ?? "")
+        return name.length > 0 && day.length > 0 ? name + "-" + day : day
     }
     // The weekday in Chinese ("周五"), which is the shell's own table: Qt's `ddd` follows the
     // interface language, and the date beside a Chinese lunar day reads wrong in English.
@@ -74,10 +81,23 @@ Singleton {
     function parse(key: string, output: string): void {
         if (!output) return
         const days = ({})
-        const re = /<ccal:day\s+value="(\d+)"[^>]*?cdate="(\d+)"/g
-        let match
-        while ((match = re.exec(output)) !== null)
-            days[match[1]] = root.chineseDays[Number(match[2])] ?? ""
+        // cmonthname is the month as it is written ("九月", and "闰四月" in a leap year), so
+        // the shell never has to know which months are leap. cdate is the day *number*: ccal
+        // puts a solar term in cdatename on the days that have one (寒露 for 廿八), which is
+        // not a day name, so the table above answers for the day. Each attribute is read on
+        // its own — ccal writes them in its own order, and cmonthname comes after cdate.
+        const tags = /<ccal:day\s+([^>]*?)\/?>/g
+        let tag
+        while ((tag = tags.exec(output)) !== null) {
+            const attributes = tag[1]
+            const day = /value="(\d+)"/.exec(attributes)?.[1] ?? ""
+            const lunarDay = /cdate="(\d+)"/.exec(attributes)?.[1] ?? ""
+            if (day.length === 0 || lunarDay.length === 0) continue
+            days[day] = {
+                month: /cmonthname="([^"]*)"/.exec(attributes)?.[1] ?? "",
+                day: root.chineseDays[Number(lunarDay)] ?? ""
+            }
+        }
         if (Object.keys(days).length === 0) return
         const next = Object.assign({}, root.months)
         next[key] = days

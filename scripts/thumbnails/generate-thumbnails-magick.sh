@@ -66,17 +66,37 @@ generate_thumbnail() {
     local hash
     hash="$(md5 "$uri")"
     local out="$CACHE_DIR/$hash.png"
-    mkdir -p "$CACHE_DIR"
+
+    # What this entry is made from. An entry is only reused for the file as it is now:
+    # the same name with different contents (a folder renumbered or restored under its
+    # own names) used to keep the old picture forever, and the picker showed one
+    # wallpaper while its preview showed another.
+    local identity
+    identity="$(stat -c '%Y|%s' "$abs_path" 2>/dev/null)" || return
     if [ -f "$out" ]; then
-        return
+        local recorded
+        recorded="$(identify -format '%[Thumb::MTime]|%[Thumb::Size]' "$out" 2>/dev/null)"
+        if [ -z "$recorded" ] || [ "$recorded" = "$identity" ]; then
+            return
+        fi
     fi
-    magick "$abs_path" -resize "${THUMBNAIL_SIZE}x${THUMBNAIL_SIZE}" "$out"
+
+    mkdir -p "$CACHE_DIR"
+    magick "$abs_path" -resize "${THUMBNAIL_SIZE}x${THUMBNAIL_SIZE}" \
+        -define png:include-chunk=tEXt \
+        -set "Thumb::MTime" "${identity%%|*}" \
+        -set "Thumb::Size" "${identity##*|}" "$out"
 }
 
 # Parse arguments
 SIZE_NAME="normal"
 MODE=""
 TARGET=""
+# iNiR's own cache, never ~/.cache/thumbnails: that one is shared with every other
+# program on the desktop, so an entry there is not necessarily ours, not necessarily
+# this file's picture, and not necessarily fresh. Passed in by the shell, which owns
+# the path; this default is for running the script by hand.
+CACHE_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/generated/wallpaper/thumbs"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --file|-f)
@@ -93,6 +113,10 @@ while [[ $# -gt 0 ]]; do
             SIZE_NAME="$2"
             shift 2
             ;;
+        --cache-dir)
+            CACHE_ROOT="$2"
+            shift 2
+            ;;
         *)
             usage
             ;;
@@ -102,7 +126,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 THUMBNAIL_SIZE="$(get_thumbnail_size "$SIZE_NAME")"
-CACHE_DIR="$HOME/.cache/thumbnails/$SIZE_NAME"
+CACHE_DIR="$CACHE_ROOT/$SIZE_NAME"
 
 if [ -z "$MODE" ] || [ -z "$TARGET" ]; then
     usage

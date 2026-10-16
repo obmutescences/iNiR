@@ -18,24 +18,6 @@ import click
 from loguru import logger
 from tqdm import tqdm
 
-# Try to import GnomeDesktop, but don't fail if not available
-GNOME_DESKTOP_AVAILABLE = False
-try:
-    import gi
-
-    gi.require_version("GnomeDesktop", "4.0")
-    from gi.repository import Gio, GnomeDesktop
-
-    GNOME_DESKTOP_AVAILABLE = True
-    thumbnail_size_map = {
-        "normal": GnomeDesktop.DesktopThumbnailSize.NORMAL,
-        "large": GnomeDesktop.DesktopThumbnailSize.LARGE,
-        "x-large": GnomeDesktop.DesktopThumbnailSize.XLARGE,
-        "xx-large": GnomeDesktop.DesktopThumbnailSize.XXLARGE,
-    }
-except (ImportError, ValueError):
-    pass
-
 # Pixel sizes for thumbnail directories (freedesktop spec)
 thumbnail_pixel_sizes = {
     "normal": 128,
@@ -44,8 +26,15 @@ thumbnail_pixel_sizes = {
     "xx-large": 1024,
 }
 
-factory = None
 current_size = "large"
+# iNiR's own cache, not ~/.cache/thumbnails. That one is shared with every other program on
+# the desktop, so an entry there is not necessarily ours, not necessarily this file's
+# picture, and not necessarily fresh; the shell passes its own root in, this default is for
+# running the script by hand.
+cache_root = str(
+    Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    / "quickshell/user/generated/wallpaper/thumbs"
+)
 active_pool = None
 logger.remove()
 logger.add(sys.stdout, level="INFO")
@@ -84,24 +73,62 @@ def get_thumbnail_path(fpath: str, size_name: str) -> str:
     encoded = "/".join(urllib.parse.quote(p, safe="") for p in parts)
     url = f"file://{encoded}"
     md5 = hashlib.md5(url.encode()).hexdigest()
-    cache_dir = os.path.expanduser(f"~/.cache/thumbnails/{size_name}")
-    return f"{cache_dir}/{md5}.png"
+    return f"{cache_root}/{size_name}/{md5}.png"
+
+
+def recorded_identity(thumb_path: str) -> str:
+    """The source identity an entry was made from, empty when it records none."""
+    result = subprocess.run(
+        ["identify", "-format", "%[Thumb::MTime]|%[Thumb::Size]", thumb_path],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def source_identity(fpath: str) -> str:
+    st = os.stat(fpath)
+    return f"{int(st.st_mtime)}|{st.st_size}"
 
 
 def make_thumbnail_imagemagick(fpath: str, size_name: str) -> bool:
-    """Generate thumbnail using ImageMagick (fallback method)."""
+    """Generate thumbnail using ImageMagick."""
     thumb_path = get_thumbnail_path(fpath, size_name)
 
+    # An entry is only reused for the file as it is now. The key is the file's URI, so a
+    # rename is a new entry, but a file replaced under the same name is not — a folder
+    # renumbered or restored under its own names used to keep the old picture forever. An
+    # entry that records no identity (a video's still frame, or one written before this) is
+    # reused as it always was.
+    identity = source_identity(fpath)
     if os.path.exists(thumb_path):
-        logger.debug("FRESH       {}".format(fpath))
-        return False
+        recorded = recorded_identity(thumb_path)
+        if not recorded or recorded == identity:
+            logger.debug("FRESH       {}".format(fpath))
+            return False
 
-    # Ensure directory exists
     os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
 
     size = thumbnail_pixel_sizes[size_name]
-    # Use [0] suffix to get first frame (works for images and animated gifs)
-    cmd = ["magick", f"{fpath}[0]", "-resize", f"{size}x{size}", thumb_path]
+    # Use [0] suffix to get first frame (works for images and animated gifs). The identity
+    # is written into the PNG's text so the next reader can tell which file this is.
+    mtime, byte_size = identity.split("|")
+    cmd = [
+        "magick",
+        f"{fpath}[0]",
+        "-resize",
+        f"{size}x{size}",
+        "-define",
+        "png:include-chunk=tEXt",
+        "-set",
+        "Thumb::MTime",
+        mtime,
+        "-set",
+        "Thumb::Size",
+        byte_size,
+        thumb_path,
+    ]
 
     try:
         result = subprocess.run(cmd, capture_output=True, timeout=30)
@@ -119,44 +146,10 @@ def make_thumbnail_imagemagick(fpath: str, size_name: str) -> bool:
 def make_thumbnail(fpath: str) -> bool:
     # One unreadable file must not abort the pool and leave the rest of the folder without thumbnails.
     try:
-        return _make_thumbnail(fpath)
+        return make_thumbnail_imagemagick(fpath, current_size)
     except Exception as e:
         logger.debug("ERROR       {} - {}".format(fpath, e))
         return False
-
-
-def _make_thumbnail(fpath: str) -> bool:
-    if GNOME_DESKTOP_AVAILABLE and factory is not None:
-        try:
-            result = _make_thumbnail_gnome(fpath)
-        except Exception as e:
-            logger.debug("FALLBACK    {} ({})".format(fpath, e))
-            result = None
-        if result is not None:
-            return result
-    return make_thumbnail_imagemagick(fpath, current_size)
-
-
-def _make_thumbnail_gnome(fpath: str):
-    """True when made, False when already fresh, None when GnomeDesktop can't do this file."""
-    mtime = os.path.getmtime(fpath)
-    f = Gio.file_new_for_path(str(fpath))
-    uri = f.get_uri()
-    mime_type = f.query_info("standard::content-type", Gio.FileQueryInfoFlags.NONE, None).get_content_type()
-
-    if factory.lookup(uri, mtime) is not None:
-        logger.debug("FRESH       {}".format(uri))
-        return False
-
-    if factory.can_thumbnail(uri, mime_type, mtime):
-        thumbnail = factory.generate_thumbnail(uri, mime_type)
-        if thumbnail is not None:
-            logger.debug("OK          {}".format(uri))
-            factory.save_thumbnail(thumbnail, uri, mtime)
-            return True
-
-    logger.debug("FALLBACK    {} (GnomeDesktop unsupported)".format(uri))
-    return None
 
 
 @logger.catch()
@@ -262,6 +255,11 @@ def get_all_files(*, dir_path: Path, recursive: bool) -> List[Path]:
     default=False,
     help="Print machine-readable progress lines instead of a progress bar",
 )
+@click.option(
+    "--cache-dir",
+    default=cache_root,
+    help="Where thumbnails are written; the shell passes its own root in",
+)
 def main(
     img_dirs: str,
     size: str,
@@ -269,17 +267,13 @@ def main(
     only_images: bool,
     recursive: bool,
     machine_progress: bool,
+    cache_dir: str,
 ) -> None:
     # A folder whose name has spaces is one folder, not several.
     img_dirs = [Path(img_dirs)] if Path(img_dirs).is_dir() else [Path(img_dir) for img_dir in img_dirs.split()]
-    global factory, current_size
+    global current_size, cache_root
     current_size = size
-
-    if GNOME_DESKTOP_AVAILABLE:
-        factory = GnomeDesktop.DesktopThumbnailFactory.new(thumbnail_size_map[size])
-    else:
-        logger.info("GnomeDesktop not available, using ImageMagick fallback")
-        factory = None
+    cache_root = cache_dir
 
     for img_dir in img_dirs:
         thumbnail_folder(
