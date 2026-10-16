@@ -55,7 +55,7 @@ PreviewScene {
                 spacing: Math.round(10 * hl.d)
                 IslandParts.DateMark {
                     pixelSize: IrisStyle.typeTitleLarge
-                    inkColor: IrisStyle.textSecondary
+                    weekdayColor: IrisStyle.textSecondary
                 }
                 Row {
                     spacing: Math.round(2 * hl.d)

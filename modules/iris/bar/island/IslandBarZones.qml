@@ -411,7 +411,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     pixelSize: 12 * IrisStyle.typeScale * zones.clockScale
                     dayColor: IrisStyle.markOn(zones.clockAccent, time.backdrop, time.light, 4.5)
-                    inkColor: time.light ? IrisStyle.inkOnLightMuted : IrisStyle.muted
+                    weekdayColor: IrisStyle.markOn(IrisStyle.secondaryAccent, time.backdrop, time.light, 3)
                 }
                 IrisClock {
                     anchors.verticalCenter: parent.verticalCenter
