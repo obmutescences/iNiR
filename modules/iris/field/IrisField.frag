@@ -81,7 +81,13 @@ layout(std140, binding = 0) uniform buf {
     // x: appearance (0 sculpted, 1 etched, 2 satin); y: music level;
     // z: light opacity; w: treatment width in screen pixels.
     vec4 frameLight;
-    vec4 frameInk;
+    // The light's inks, one per quarter of the way round the frame: top, right, bottom, left.
+    // One colour repeated four times is the single-colour light, and the ramp between them is
+    // then a flat wash.
+    vec4 frameInkA;
+    vec4 frameInkB;
+    vec4 frameInkC;
+    vec4 frameInkD;
     // Where this field's window sits on its output (x, y) and the output's size (z, w), so a
     // field in a small window (a menu) samples the wallpaper glass at the right place.
     vec4 scene;
@@ -119,6 +125,33 @@ float roundedBox(vec2 p, vec2 centre, vec2 halfSize, float radius) {
     vec2 q = abs(p - centre) - (halfSize - r);
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
+
+// Where a point on the frame sits on its way round: 0 at the top edge's middle, rising
+// clockwise to 1 at the full turn. Each edge owns a quarter, so its middle is one ink and the
+// corners are the halfway blend of the two they join. A point inside the frame — a body joined
+// to it, wearing the same light — takes the edge it is nearest, so the light runs on along it.
+// The corner needs no case of its own: both branches saturate there and agree.
+float frameAround(vec2 q, vec2 halfSize, float radius) {
+    vec2 s = max(halfSize - vec2(radius), vec2(1e-3));
+    float fx = clamp(q.x / s.x, -1.0, 1.0);
+    float fy = clamp(q.y / s.y, -1.0, 1.0);
+    if (abs(q.x) * s.y >= abs(q.y) * s.x)
+        return q.x > 0.0 ? 0.25 + 0.125 * fy : 0.75 - 0.125 * fy;
+    return q.y < 0.0 ? 0.125 * fx : 0.5 - 0.125 * fx;
+}
+
+// Four inks evenly around the loop, each meeting the next across its own quarter.
+vec3 frameRamp(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
+    float k = fract(t) * 4.0;
+    vec3 lo = k < 1.0 ? a : k < 2.0 ? b : k < 3.0 ? c : d;
+    vec3 hi = k < 1.0 ? b : k < 2.0 ? c : k < 3.0 ? d : a;
+    return mix(lo, hi, fract(k));
+}
+
+// How fast the four inks travel round the frame. The pulse's phase wraps at 2000π, so a whole
+// number of turns per cycle — 314 here, a turn every 33 s at rest and every 7 s at full level —
+// keeps the ramp from jumping when it does.
+const float FRAME_SPIN = 314.0 / 6283.185;
 
 // The chrome bevel's environment by elevation e: -1 ground, 0 horizon, 1 sky.
 vec3 chromeAt(float e, vec3 sky, vec3 hot, vec3 ground, vec3 deep) {
@@ -477,7 +510,9 @@ void main() {
         float satin = exp(-inside / (width * 2.4));
         float treatment = u.frameLight.x < 1.5 ? etched : satin;
         float lightAlpha = coverage * wall * treatment * u.frameLight.y * u.frameLight.z * u.qt_Opacity;
-        colour = u.frameInk.rgb * lightAlpha + colour * (1.0 - lightAlpha);
+        vec3 ink = frameRamp(frameAround(frameP - frameCentre, frameHalf, u.field.w) + u.waveClock.x * FRAME_SPIN,
+            u.frameInkA.rgb, u.frameInkB.rgb, u.frameInkC.rgb, u.frameInkD.rgb);
+        colour = ink * lightAlpha + colour * (1.0 - lightAlpha);
         alpha = lightAlpha + alpha * (1.0 - lightAlpha);
     }
     float shadowAlpha = 0.0;

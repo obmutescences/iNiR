@@ -38,7 +38,10 @@ Item {
     property real waveClock: 0
     property real frameMusicLevel: 0
     property int frameMusicAppearance: IrisFrame.musicAppearanceCode
-    property color frameMusicInk: IrisFrame.musicInk
+    property color frameMusicInkA: IrisFrame.musicInks[0]
+    property color frameMusicInkB: IrisFrame.musicInks[1]
+    property color frameMusicInkC: IrisFrame.musicInks[2]
+    property color frameMusicInkD: IrisFrame.musicInks[3]
     property real frameMusicLight: IrisFrame.musicLight
     property real frameMusicLightWidth: IrisFrame.musicLightWidth
     function glassOf(shape: var): int {
@@ -266,7 +269,10 @@ Item {
         readonly property vector4d waveClock: Qt.vector4d(root.waveClock, 0, 0, 0)
         readonly property vector4d frameLight: Qt.vector4d(root.frameMusicAppearance, root.frameMusicLevel,
             root.frameMusicLight, root.frameMusicLightWidth)
-        readonly property color frameInk: root.frameMusicInk
+        readonly property color frameInkA: root.frameMusicInkA
+        readonly property color frameInkB: root.frameMusicInkB
+        readonly property color frameInkC: root.frameMusicInkC
+        readonly property color frameInkD: root.frameMusicInkD
         readonly property color shade: IrisStyle.shadow
         readonly property vector4d shadeShape: Qt.vector4d(root.shadowFall, root.shadowBlur, root.casts ? 1 : 0, 0)
         readonly property Item backdrop: pass.backdropReady ? root.backdropSource.texture : noBackdrop

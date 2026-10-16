@@ -47,11 +47,18 @@ QtObject {
     function safeInset(edge: string): real { return root.inset(edge) + root.musicReach(edge) }
     function safeClear(edge: string): real { return root.clear(edge) + root.musicReach(edge) }
     readonly property int musicAppearanceCode: ({ sculpted: 0, etched: 1, satin: 2 })[String(root.surround?.musicAppearance ?? "etched")] ?? 1
-    readonly property color musicInk: {
+    // The light's inks, one per quarter of the frame's way round: top, right, bottom, left.
+    // One colour is that colour four times, and the ramp between them is then a flat wash;
+    // "spectrum" walks all four the light can take, so every one of them is on the frame at
+    // once, each owning a side and travelling round with the pulse.
+    readonly property var musicInks: {
         const colour = String(root.surround?.musicColour ?? "pearl")
-        return colour === "accent" ? IrisStyle.accent
+        if (colour === "spectrum")
+            return [IrisStyle.text, IrisStyle.accent, IrisStyle.secondaryAccent, IrisStyle.wallpaperLight]
+        const single = colour === "accent" ? IrisStyle.accent
             : colour === "highlight" ? IrisStyle.secondaryAccent
             : colour === "wallpaper" ? IrisStyle.wallpaperLight : IrisStyle.text
+        return [single, single, single, single]
     }
     readonly property real musicLight: Math.max(0, Math.min(1, Number(root.surround?.musicLight ?? 35) / 100))
     readonly property real musicLightWidth: Math.max(1, Math.min(18, Number(root.surround?.musicLightWidth ?? 5))) * root.d

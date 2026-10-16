@@ -8,6 +8,7 @@ import qs.modules.common
 import qs.modules.common.functions
 import qs.modules.common.widgets
 import qs.modules.iris.components
+import qs.modules.iris.frame
 import qs.modules.iris.style
 import qs.modules.iris.pieces
 import qs.modules.iris.widgets
@@ -818,6 +819,19 @@ Item {
                                     GradientStop { position: 0.67; color: Qt.hsla(0.67, 0.8, 0.62, 1) } // iris-literal: hue ramp
                                     GradientStop { position: 0.83; color: Qt.hsla(0.83, 0.8, 0.62, 1) } // iris-literal: hue ramp
                                     GradientStop { position: 1; color: Qt.hsla(0.999, 0.8, 0.62, 1) } // iris-literal: hue ramp
+                                }
+                            }
+                            // The four inks the frame walks, laid out as the ramp the shader reads them into.
+                            Rectangle {
+                                visible: source.kind === "spectrum"
+                                anchors.fill: parent
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0; color: IrisFrame.musicInks[0] }
+                                    GradientStop { position: 0.25; color: IrisFrame.musicInks[1] }
+                                    GradientStop { position: 0.5; color: IrisFrame.musicInks[2] }
+                                    GradientStop { position: 0.75; color: IrisFrame.musicInks[3] }
+                                    GradientStop { position: 1; color: IrisFrame.musicInks[0] }
                                 }
                             }
                             // A theme brings its pair: the colour this row takes, and beside it the other one it sets.

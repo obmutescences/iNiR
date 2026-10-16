@@ -4472,7 +4472,9 @@ Singleton {
                     property int musicSensitivity: 140 // 50-250 %, response to quiet music
                     property int musicSpeed: 100 // 40-200 %, travel along the frame
                     property string musicAppearance: "etched" // "sculpted" | "etched" | "satin"
-                    property string musicColour: "pearl" // "pearl" | "accent" | "highlight" | "wallpaper"
+                    // "pearl" | "accent" | "highlight" | "wallpaper" pick one ink; "spectrum"
+                    // lays all four round the frame, one a side, and walks them round it.
+                    property string musicColour: "pearl"
                     property int musicLight: 35 // 0-100 %, light on the moving inner edge
                     property int musicLightWidth: 5 // 1-18 px, edge treatment width
                     property int thickness: 10
