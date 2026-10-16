@@ -4366,6 +4366,18 @@ Singleton {
                             property real fx: 0.5
                             property real fy: 0.5
                         }
+                        property JsonObject usage: JsonObject {
+                            property bool enable: false
+                            property string place: "right"
+                            property real fx: 0.5
+                            property real fy: 0.5
+                        }
+                        property JsonObject netspeed: JsonObject {
+                            property bool enable: false
+                            property string place: "right"
+                            property real fx: 0.5
+                            property real fy: 0.5
+                        }
                         property JsonObject workspaces: JsonObject {
                             property bool enable: false
                             property string place: "right"

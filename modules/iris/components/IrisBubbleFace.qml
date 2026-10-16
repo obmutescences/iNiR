@@ -52,6 +52,10 @@ Item {
     property real contentInset: 0
     readonly property bool inline: root.lane && ["notifications", "weather", "calendar", "updates"].includes(root.kind)
     readonly property real laneWidth: root.inline ? Math.max(root.height, inlineFace.implicitWidth + 2 * Math.round(8 * root.d)) : root.height
+    // What the face's own reading takes across. A row lays the piece out at this rather than at a
+    // square, so the reading hugs its ring or its glyph: a fixed field wide enough for the longest
+    // figure leaves the gap the figure is not using, and that gap is what the eye lands on.
+    readonly property real wideWidth: Math.max(usageFace.contentWidth, netspeedFace.contentWidth)
     // What this piece opened (its card, its page, the Control Center) is showing: the plate stays lit, as a menu bar item does.
     property bool open: false
     property color tint: root.ink
@@ -599,6 +603,179 @@ Item {
                 font.weight: IrisStyle.weight(Font.Bold)
             }
         }
+        Item {
+            id: usageFace
+            visible: root.kind === "usage"
+            anchors.fill: parent
+            // The reading sits beside its ring, so the piece is wider than the cell is tall and
+            // the row lays it out at contentWidth. Everything here sizes from the height: a row
+            // that sized from the width would be reading the width it is about to fill.
+            readonly property real cell: root.height
+            readonly property real pad: Math.round(usageFace.cell * 0.16)
+            readonly property real ringSize: Math.round(usageFace.cell * 0.48)
+            readonly property real gap: Math.round(usageFace.cell * 0.18)
+            readonly property real figureSize: Math.round(usageFace.cell * 0.41)
+            readonly property real cpu: Math.max(0, Math.min(1, ResourceUsage.cpuUsage))
+            readonly property real memory: Math.max(0, Math.min(1, ResourceUsage.memoryUsedPercentage))
+            // The room two figures take. The processor crosses from one figure to two as it works,
+            // and a piece that widens with it drags the whole Island along; a reading of three
+            // figures needs more and the piece follows it.
+            TextMetrics {
+                id: usageFigures
+                font.family: IrisStyle.fontNumbers
+                font.pixelSize: usageFace.figureSize
+                text: "99"
+            }
+            readonly property real figureWidth: Math.ceil(usageFigures.advanceWidth)
+            readonly property real contentWidth: root.kind === "usage" ? usageRow.implicitWidth + 2 * usageFace.pad : 0
+            Row {
+                id: usageRow
+                anchors.centerIn: parent
+                spacing: usageFace.pad
+                Row {
+                    spacing: usageFace.gap
+                    Ring {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: usageFace.ringSize
+                        height: usageFace.ringSize
+                        tint: root.faceAccent
+                        progress: usageFace.cpu
+                        Behavior on progress { enabled: usageFace.visible; NumberAnimation { duration: IrisStyle.duration(220); easing.type: IrisStyle.feedbackEasing } }
+                    }
+                    FaceText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(Math.ceil(implicitWidth), usageFace.figureWidth)
+                        text: Math.round(usageFace.cpu * 100)
+                        color: root.highlight
+                        font.family: IrisStyle.fontNumbers
+                        font.features: ({ "tnum": 1 })
+                        font.pixelSize: usageFace.figureSize
+                        font.weight: IrisStyle.weight(Font.Bold)
+                    }
+                }
+                Row {
+                    spacing: usageFace.gap
+                    Ring {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: usageFace.ringSize
+                        height: usageFace.ringSize
+                        tint: root.faceAccent
+                        progress: usageFace.memory
+                        Behavior on progress { enabled: usageFace.visible; NumberAnimation { duration: IrisStyle.duration(220); easing.type: IrisStyle.feedbackEasing } }
+                    }
+                    FaceText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(Math.ceil(implicitWidth), usageFace.figureWidth)
+                        text: Math.round(usageFace.memory * 100)
+                        color: root.highlight
+                        font.family: IrisStyle.fontNumbers
+                        font.features: ({ "tnum": 1 })
+                        font.pixelSize: usageFace.figureSize
+                        font.weight: IrisStyle.weight(Font.Bold)
+                    }
+                }
+            }
+        }
+        Item {
+            id: netspeedFace
+            visible: root.kind === "netspeed"
+            anchors.fill: parent
+            readonly property real cell: root.height
+            readonly property real glyphSize: Math.round(netspeedFace.cell * 0.50)
+            readonly property real gap: Math.round(netspeedFace.cell * 0.09)
+            readonly property real figureSize: Math.round(netspeedFace.cell * 0.41)
+            readonly property real unitSize: Math.round(netspeedFace.cell * 0.40)
+            readonly property real pad: Math.round(netspeedFace.cell * 0.16)
+            readonly property var download: NetSpeed.rateParts(NetSpeed.downloadRate)
+            readonly property var upload: NetSpeed.rateParts(NetSpeed.uploadRate)
+            // The room one rate takes when it shows three figures, measured rather than worked out
+            // from its parts. A piece that widens when a reading crosses ten drags the whole
+            // Island with it, and a rate crosses ten constantly; a four-figure rate needs more,
+            // and the piece follows it. The two rates sit at the piece's ends, so what a shorter
+            // reading leaves stands between them and not against the clock.
+            Row {
+                id: groupFloor
+                visible: false
+                spacing: netspeedFace.gap
+                Glyph {
+                    text: "arrow_downward"
+                    iconSize: netspeedFace.glyphSize
+                }
+                FaceText {
+                    text: "999"
+                    font.family: IrisStyle.fontNumbers
+                    font.pixelSize: netspeedFace.figureSize
+                    font.weight: IrisStyle.weight(Font.Bold)
+                }
+                FaceText {
+                    text: "K"
+                    font.pixelSize: netspeedFace.unitSize
+                    font.weight: IrisStyle.weight(Font.Medium)
+                }
+            }
+            readonly property real contentWidth: root.kind === "netspeed"
+                ? Math.max(netspeedFace.pad * 3 + downloadGroup.implicitWidth + uploadGroup.implicitWidth,
+                    netspeedFace.pad * 3 + groupFloor.implicitWidth * 2)
+                : 0
+            Row {
+                id: downloadGroup
+                anchors.left: parent.left
+                anchors.leftMargin: netspeedFace.pad
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: netspeedFace.gap
+                Glyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "arrow_downward"
+                    iconSize: netspeedFace.glyphSize
+                    color: root.faceAccent
+                }
+                FaceText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: netspeedFace.download.value
+                    color: root.faceAccent
+                    font.family: IrisStyle.fontNumbers
+                    font.features: ({ "tnum": 1 })
+                    font.pixelSize: netspeedFace.figureSize
+                    font.weight: IrisStyle.weight(Font.Bold)
+                }
+                FaceText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: netspeedFace.download.unit
+                    color: root.faceAccent
+                    font.pixelSize: netspeedFace.unitSize
+                    font.weight: IrisStyle.weight(Font.Medium)
+                }
+            }
+            Row {
+                id: uploadGroup
+                anchors.right: parent.right
+                anchors.rightMargin: netspeedFace.pad
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: netspeedFace.gap
+                Glyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "arrow_upward"
+                    iconSize: netspeedFace.glyphSize
+                    color: root.highlight
+                }
+                FaceText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: netspeedFace.upload.value
+                    color: root.highlight
+                    font.family: IrisStyle.fontNumbers
+                    font.features: ({ "tnum": 1 })
+                    font.pixelSize: netspeedFace.figureSize
+                    font.weight: IrisStyle.weight(Font.Bold)
+                }
+                FaceText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: netspeedFace.upload.unit
+                    color: root.highlight
+                    font.pixelSize: netspeedFace.unitSize
+                    font.weight: IrisStyle.weight(Font.Medium)
+                }
+            }
+        }
         Column {
             id: workspacesFace
             visible: root.kind === "workspaces"
@@ -898,7 +1075,8 @@ Item {
         }
     }
 
-    ResourceUsageMonitor { target: root; active: root.kind === "vitals" }
+    ResourceUsageMonitor { target: root; active: root.kind === "vitals" || root.kind === "usage" }
+    NetSpeedMonitor { target: root; active: root.kind === "netspeed" }
 
     Accessible.role: Accessible.Button
     Accessible.name: root.kind === "controls" ? Translation.tr("Quick controls")
@@ -918,6 +1096,8 @@ Item {
         : root.kind === "network" ? Translation.tr("Network")
         : root.kind === "bluetooth" ? Translation.tr("Bluetooth")
         : root.kind === "vitals" ? Translation.tr("Vitals")
+        : root.kind === "usage" ? Translation.tr("Processor and memory")
+        : root.kind === "netspeed" ? Translation.tr("Network speed")
         : root.kind === "workspaces" ? Translation.tr("Workspaces")
         : root.kind === "updates" ? Translation.tr("Updates")
         : root.kind === "anime" ? Translation.tr("Airing")

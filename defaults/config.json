@@ -2732,6 +2732,8 @@
                 "network": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5 },
                 "bluetooth": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5 },
                 "vitals": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5 },
+                "usage": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5 },
+                "netspeed": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5 },
                 "workspaces": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5, "opens": "card" },
                 "updates": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5 },
                 "vpn": { "enable": false, "place": "right", "fx": 0.5, "fy": 0.5 },

@@ -207,7 +207,8 @@ Item {
             property string kind: ""
             property bool light: false
             property var backdrop: null
-            implicitWidth: zones.vertical ? zones.pieceSize : face.laneWidth
+            implicitWidth: zones.vertical ? zones.pieceSize
+                : Math.max(face.laneWidth, face.wideWidth > 0 ? face.wideWidth : zones.pieceSize)
             implicitHeight: zones.pieceSize
             IrisBubbleFace {
                 id: face

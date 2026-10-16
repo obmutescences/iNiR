@@ -672,14 +672,13 @@ Item {
     readonly property real barPieceGap: Math.round(6 * root.d)
     readonly property bool piecesAtStart: String(root.options?.piecesSide ?? "end") === "start"
     readonly property real trayStripGap: Math.round(4 * root.d)
-    function barPieceAlong(kind: string): real {
-        if (kind !== "tray" || !root.trayAppsFace) return root.barPieceSize
-        const count = Math.max(1, root.trayItems.length)
-        return count * root.barPieceSize + (count - 1) * root.trayStripGap
-    }
+    // What the Island's own pieces take along the bar, reported by the row as it lays out. The
+    // reserve is what the clock is kept clear of, so it has to be the pieces' real extent: an
+    // upper bound sized for the longest reading leaves the Island holding air between the time
+    // and them, and the eye reads that air as a gap, not as room.
+    property real barPiecesExtent: 0
     readonly property real barPieceReserve: root.zoned || root.barPieces.length === 0 ? 0
-        : root.barPieces.reduce((sum, kind) => sum + root.barPieceAlong(kind), 0)
-            + (root.barPieces.length - 1) * root.barPieceGap + Math.round(13 * root.d)
+        : root.barPiecesExtent + Math.round(3 * root.d)
 
     readonly property real sideReserveTarget: root.auxiliaryShown
         ? root.auxiliarySlot * (root.bubble + root.satelliteOffset)
@@ -2025,6 +2024,9 @@ Item {
                 id: barPieceRow
                 z: 1
                 columns: root.vertical ? 1 : Math.max(1, root.barPieces.length)
+                readonly property real extent: root.vertical ? implicitHeight : implicitWidth
+                onExtentChanged: root.barPiecesExtent = extent
+                Component.onCompleted: root.barPiecesExtent = extent
                 x: root.vertical ? Math.round((parent.width - width) / 2)
                     : root.piecesAtStart ? Math.round(12 * root.d) : parent.width - width - Math.round(12 * root.d)
                 y: !root.vertical ? Math.round((parent.height - height) / 2)
@@ -2037,8 +2039,9 @@ Item {
                         id: barPiece
                         required property string modelData
                         readonly property bool strip: barPiece.modelData === "tray" && root.trayAppsFace
-                        width: barPiece.strip && !root.vertical ? traySlot.width : root.barPieceSize
-                        height: barPiece.strip && root.vertical ? traySlot.height : root.barPieceSize
+                        width: barPiece.strip && !root.vertical ? traySlot.width
+                            : (face.wideWidth > 0 ? face.wideWidth : root.barPieceSize)
+                        height: barPiece.strip && root.vertical ? traySlot.height : IrisPieces.pieceHeight(barPiece.modelData, root.barPieceSize)
                         readonly property bool lifted: root.draggedSlot === "extra-" + barPiece.modelData
                         opacity: barPiece.lifted ? 0 : 1
                         IrisTrayStrip {
@@ -2054,6 +2057,7 @@ Item {
                             onCellHover: on => root.hoveredPieces += on ? 1 : -1
                         }
                         IrisBubbleFace {
+                            id: face
                             visible: !barPiece.strip
                             anchors.fill: parent
                             screenName: root.targetScreen?.name ?? ""

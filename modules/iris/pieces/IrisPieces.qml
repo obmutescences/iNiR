@@ -45,6 +45,8 @@ QtObject {
         { id: "network", label: "Network", description: "The link you are on as a signal arc; its card holds the networks.", card: true },
         { id: "bluetooth", label: "Bluetooth", description: "What is connected; its card holds the devices.", card: true },
         { id: "vitals", label: "Vitals", description: "The load as a ring; its card holds processor, memory, heat and disk.", card: true },
+        { id: "usage", label: "Usage", description: "Processor and memory as two rings, each with its share under it.", card: false },
+        { id: "netspeed", label: "Net speed", description: "Download and upload throughput, sampled once a second.", card: false },
         { id: "workspaces", label: "Workspaces", description: "This output's workspaces; tap for Overview or a workspace card.", card: true },
         { id: "updates", label: "Updates", description: "How many packages are waiting; its card checks and opens them.", card: true },
         { id: "vpn", label: "VPN", description: "Whether you are on a VPN, as a shield that fills when you are. Its card lists your NetworkManager profiles and Tailscale, and turns any of them on or off.", card: true },
@@ -56,6 +58,13 @@ QtObject {
     ]
     readonly property var slotIds: root.slots.map(piece => piece.id)
     readonly property var extraIds: root.extras.map(piece => piece.id)
+    // The two pieces whose reading sits beside its figure rather than above it, and how much
+    // taller than a bar cell each stands: their content is not the cell, so they take the room
+    // the Island leaves around one. A piece not listed stands one cell tall.
+    readonly property var widePieces: ({ usage: 1.12, netspeed: 1.12 })
+    function pieceHeight(kind: string, cell: real): real {
+        return Math.round(cell * (root.widePieces[kind] ?? 1))
+    }
     readonly property var availableExtras: root.extraIds.filter(id => root.available(id))
     readonly property Binding frameFeed: Binding { target: IrisFrame; property: "availableExtras"; value: root.availableExtras }
     readonly property var cardIds: root.extras.filter(piece => piece.card).map(piece => piece.id)
