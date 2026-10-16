@@ -404,6 +404,9 @@ ColumnLayout {
                 IrisClock {
                     id: heroClock
                     pixelSize: 46 * IrisStyle.typeScale
+                    // The resting clock flies into this one, so both read the time in the same ink.
+                    color: page.island.clockAccent
+                    secondsColor: IrisStyle.secondaryAccent
                     opacity: page.island.clockFlightItem.hides(heroClock) ? 0 : 1
                     Component.onCompleted: page.island.heroClock = heroClock
                 }

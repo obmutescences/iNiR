@@ -1502,6 +1502,8 @@ Item {
             readonly property real fromSize: Math.max(1, clockFlight.fromPixelSize)
             readonly property real toSize: Math.max(1, clockFlight.to?.pixelSize ?? clockFlight.fromPixelSize)
             pixelSize: Math.max(fromSize, toSize)
+            color: root.clockAccent
+            secondsColor: IrisStyle.secondaryAccent
             transformOrigin: Item.TopLeft
             scale: (fromSize + (toSize - fromSize) * clockFlight.t) / pixelSize
         }
@@ -1723,7 +1725,8 @@ Item {
                     id: idleClock
                     Layout.alignment: Qt.AlignVCenter
                     pixelSize: 15 * IrisStyle.typeScale * root.clockScale
-                    separatorColor: root.clockAccent
+                    color: root.clockAccent
+                    secondsColor: IrisStyle.secondaryAccent
                     opacity: clockFlight.hides(idleClock) ? 0 : 1
                 }
             }
@@ -1887,7 +1890,8 @@ Item {
                     id: clusterClock
                     Layout.alignment: Qt.AlignVCenter
                     pixelSize: 15 * IrisStyle.typeScale * root.clockScale
-                    separatorColor: root.clockAccent
+                    color: root.clockAccent
+                    secondsColor: IrisStyle.secondaryAccent
                     opacity: clockFlight.hides(clusterClock) ? 0 : 1
                 }
                 Item { Layout.fillWidth: true }

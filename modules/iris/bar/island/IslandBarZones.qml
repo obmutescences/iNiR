@@ -417,8 +417,9 @@ Item {
                 IrisClock {
                     anchors.verticalCenter: parent.verticalCenter
                     pixelSize: 14 * IrisStyle.typeScale * zones.clockScale
-                    color: time.light ? IrisStyle.inkOnLight : IrisStyle.text
-                    separatorColor: IrisStyle.markOn(zones.clockAccent, time.backdrop, time.light, 3)
+                    color: IrisStyle.markOn(zones.clockAccent, time.backdrop, time.light, 4.5)
+                    separatorColor: IrisStyle.markOn(IrisStyle.secondaryAccent, time.backdrop, time.light, 3)
+                    secondsColor: IrisStyle.markOn(IrisStyle.secondaryAccent, time.backdrop, time.light, 3)
                 }
             }
             IslandStackedClock {

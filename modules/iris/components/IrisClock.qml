@@ -13,6 +13,9 @@ Row {
     property int weight: IrisStyle.figureWeight
     property color color: IrisStyle.text
     property color separatorColor: IrisStyle.secondaryAccent
+    // The seconds and the day period are the reading's minor part, and they can hold their own ink:
+    // a clock whose figures take the primary colour and whose seconds take the secondary.
+    property color secondsColor: IrisStyle.secondaryOf(root.color)
     property string family: IrisStyle.fontNumbers
     property real minorScale: 0.58
 
@@ -52,7 +55,7 @@ Row {
         font.pixelSize: Math.round(root.pixelSize * root.minorScale)
         font.weight: IrisStyle.weight(Font.DemiBold)
         font.features: ({ "tnum": 1 })
-        color: IrisStyle.secondaryOf(root.color)
+        color: root.secondsColor
         renderType: Text.NativeRendering
     }
 
@@ -88,7 +91,7 @@ Row {
             family: root.family
             pixelSize: Math.round(root.pixelSize * root.minorScale)
             weight: Font.DemiBold
-            color: IrisStyle.secondaryOf(root.color)
+            color: root.secondsColor
         }
     }
     Minor {

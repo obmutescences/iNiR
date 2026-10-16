@@ -243,7 +243,11 @@ PreviewScene {
                                 font.pixelSize: IrisStyle.typeLabel
                                 font.weight: IrisStyle.weight(Font.Medium)
                             }
-                            IrisClock { pixelSize: 46 * IrisStyle.typeScale }
+                            IrisClock {
+                                pixelSize: 46 * IrisStyle.typeScale
+                                color: IrisStyle.accent
+                                secondsColor: IrisStyle.secondaryAccent
+                            }
                         }
                         ColumnLayout {
                             visible: pageRoot.weatherReady

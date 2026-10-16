@@ -314,7 +314,8 @@ ClippingRectangle {
                     IrisClock {
                         Layout.alignment: Qt.AlignVCenter
                         pixelSize: 15 * IrisStyle.typeScale * root.clockScale
-                        separatorColor: root.clockAccent
+                        color: root.clockAccent
+                        secondsColor: IrisStyle.secondaryAccent
                     }
                 }
             }
