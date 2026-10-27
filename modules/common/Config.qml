@@ -2893,6 +2893,12 @@ Singleton {
                 property bool showWallpaperSchemeChips: false
             }
 
+            property JsonObject centerPanel: JsonObject {
+                property bool enable: true
+                property bool keepLoaded: false
+                property real widthRatio: 0.4667 // Panel width as fraction of screen width
+                property real heightRatio: 0.5333 // Panel height as fraction of screen height
+            }
             // Dashboard hub panel (ii family). Widget ids per column:
             //   welcome, clock, weather, calendar, agenda, media, notifications,
             //   todo, system, github. Columns collapse when empty.

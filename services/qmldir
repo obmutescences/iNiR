@@ -2,6 +2,7 @@ module qs.services
 singleton AwwwBackend 1.0 AwwwBackend.qml
 singleton Ai 1.0 Ai.qml
 singleton AppCatalog 1.0 AppCatalog.qml
+singleton Anniversaries 1.0 Anniversaries.qml
 singleton AppLauncher 1.0 AppLauncher.qml
 singleton AppSearch 1.0 AppSearch.qml
 singleton Audio 1.0 Audio.qml
@@ -12,6 +13,7 @@ singleton Booru 1.0 Booru.qml
 BooruResponseData 1.0 BooruResponseData.qml
 singleton Brightness 1.0 Brightness.qml
 singleton CalendarSync 1.0 CalendarSync.qml
+singleton ChineseCalendar 1.0 ChineseCalendar.qml
 singleton CavaTheme 1.0 CavaTheme.qml
 singleton CompositorService 1.0 CompositorService.qml
 singleton ConflictKiller 1.0 ConflictKiller.qml
@@ -29,6 +31,7 @@ singleton FontSyncService 1.0 FontSyncService.qml
 singleton GameMode 1.0 GameMode.qml
 singleton GamePerformanceService 1.0 GamePerformanceService.qml
 singleton GlobalActions 1.0 GlobalActions.qml
+singleton HolidayCalendar 1.0 HolidayCalendar.qml
 HyprlandData 1.0 HyprlandData.qml
 singleton Hyprsunset 1.0 Hyprsunset.qml
 singleton IconThemeService 1.0 IconThemeService.qml
@@ -46,10 +49,12 @@ singleton MascotMood 1.0 MascotMood.qml
 singleton MprisController 1.0 MprisController.qml
 singleton Network 1.0 Network.qml
 singleton NetSpeed 1.0 NetSpeed.qml
+singleton NetworkDetails 1.0 NetworkDetails.qml
 singleton NiriAnimationPresets 1.0 NiriAnimationPresets.qml
 singleton NiriService 1.0 NiriService.qml
 singleton Notepad 1.0 Notepad.qml
 singleton Notifications 1.0 Notifications.qml
+singleton ProcessList 1.0 ProcessList.qml
 singleton PolkitService 1.0 PolkitService.qml
 PolkitServiceImpl 1.0 PolkitServiceImpl.qml
 singleton PowerProfilePersistence 1.0 PowerProfilePersistence.qml

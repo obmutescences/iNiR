@@ -1,0 +1,6 @@
+module qs.modules.centerPanel.pages
+OverviewPage 1.0 OverviewPage.qml
+PlayerPage 1.0 PlayerPage.qml
+AudioPage 1.0 AudioPage.qml
+CalendarPage 1.0 CalendarPage.qml
+ProcessesPage 1.0 ProcessesPage.qml

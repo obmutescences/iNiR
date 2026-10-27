@@ -356,6 +356,8 @@ Singleton {
         }
     }
     property bool controlPanelOpen: false
+    property bool centerPanelOpen: false
+    property int centerPanelTab: 0
     // iRiS: screen-local geometry ({x, y, width, height, radius, screen}) of the
     // Island part that last opened a surface, so it can morph out of and back
     // into that exact shape. Transient coordination only; null means "no origin".

@@ -74,6 +74,15 @@ Item {
 
     IrisAppsSync {}
 
+    OnDemandPanelLoader {
+        identifier: "irisCenterPanel"
+        requireEnabledPanel: false
+        open: GlobalStates.centerPanelOpen
+        closeGraceMs: IrisStyle.settleDuration + 120
+        extraCondition: Config.options?.centerPanel?.enable ?? true
+        source: "../centerPanel/CenterPanel.qml"
+    }
+
     // Orbit's hot corner: a few pixels in one screen corner, on Top, only while it is on and something can use it.
     LazyLoader {
         active: IrisGate.official && (Config.options?.iris?.orbit?.enable ?? false) && (Config.options?.iris?.orbit?.hotCorner ?? true)

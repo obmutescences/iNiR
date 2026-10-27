@@ -33,6 +33,8 @@ IrisNetworkList 1.0 IrisNetworkList.qml
 IrisBluetoothList 1.0 IrisBluetoothList.qml
 IrisGlassPane 1.0 IrisGlassPane.qml
 IrisLightWash 1.0 IrisLightWash.qml
+LiquidCard 1.0 LiquidCard.qml
+RadialGauge 1.0 RadialGauge.qml
 IrisTrayMenu 1.0 IrisTrayMenu.qml
 IrisTrayIcon 1.0 IrisTrayIcon.qml
 IrisTrayStrip 1.0 IrisTrayStrip.qml

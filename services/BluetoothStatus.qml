@@ -62,6 +62,10 @@ Singleton {
         return summary;
     }
 
+    function toggle(): void {
+        if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled
+    }
+
     function connectionTooltip(): string {
         if (!root.enabled) return Translation.tr("Bluetooth is disabled");
         if (!root.connected) return Translation.tr("Bluetooth disconnected");

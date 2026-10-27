@@ -1436,6 +1436,12 @@
             "username": ""
         }
     },
+    "centerPanel": {
+        "enable": true,
+        "keepLoaded": false,
+        "widthRatio": 0.4667,
+        "heightRatio": 0.5333
+    },
     "settingsUi": {
         "overlayMode": true,
         "overlayStyle": "rail",
@@ -3096,7 +3102,8 @@
         "iiClipboard",
         "iiShellUpdate",
         "iiDashboard",
-        "iiMascotCompanion"
+        "iiMascotCompanion",
+        "irisCenterPanel"
     ],
     "workspaceStrip": {
         "style": "auto",

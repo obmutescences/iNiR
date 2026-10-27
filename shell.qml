@@ -445,6 +445,22 @@ ShellRoot {
     }
 
     IpcHandler {
+        target: "centerPanel"
+        function toggle(): void { GlobalStates.centerPanelOpen = !GlobalStates.centerPanelOpen }
+        function close(): void { GlobalStates.centerPanelOpen = false }
+        function open(): void { GlobalStates.centerPanelOpen = true }
+        function tab(index: string): string {
+            const value = parseInt(index)
+            if (!isNaN(value) && value >= 0 && value <= 4)
+                GlobalStates.centerPanelTab = value
+            return String(GlobalStates.centerPanelTab)
+        }
+        function status(): string {
+            return JSON.stringify({ open: GlobalStates.centerPanelOpen, tab: GlobalStates.centerPanelTab })
+        }
+    }
+
+    IpcHandler {
         target: "sidebarLeft"
         function toggle(): void { GlobalStates.toggleSidebarLeft("") }
         function close(): void { GlobalStates.closeSidebarLeft() }
