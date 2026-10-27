@@ -18,8 +18,8 @@ Item {
     property bool _held: false
     readonly property real gap: Math.round(14 * IrisStyle.density)
     readonly property real cardRadius: IrisStyle.radiusCard
-    readonly property color cpuTint: IrisStyle.accent
-    readonly property color memoryTint: IrisStyle.secondaryAccent
+    readonly property color cpuTint: ResourceUsage.cpuUsage >= 0.9 ? IrisStyle.danger : IrisStyle.accent
+    readonly property color memoryTint: ResourceUsage.memoryUsedPercentage >= 0.9 ? IrisStyle.danger : IrisStyle.secondaryAccent
     readonly property color diskTint: IrisStyle.success
 
     readonly property real diskRatio: root.diskTotalBytes > 0
@@ -110,6 +110,12 @@ Item {
     Component.onDestruction: {
         if (root._held) NetSpeed.releaseKeepAlive()
         NetworkDetails.active = false
+    }
+
+    // 面板自己持有采样：岛的 usage 组件关掉时，CPU/内存也要有数据。
+    // 页面收起后自动释放，服务由 autoStopTimer 停掉。
+    ResourceUsageMonitor {
+        target: root
     }
 
     Timer {
@@ -247,7 +253,7 @@ Item {
                     height: Math.min(gauges.height, Math.round(210 * IrisStyle.density))
                     y: (gauges.height - height) / 2
                     label: Translation.tr("Download")
-                    tint: root.cpuTint
+                    tint: IrisStyle.accent
                     value: root.downloadShare
                     figure: root.rateParts(root.downloadRate).value
                     unit: root.rateParts(root.downloadRate).unit
@@ -306,7 +312,7 @@ Item {
                     height: Math.min(gauges.height, Math.round(210 * IrisStyle.density))
                     y: (gauges.height - height) / 2
                     label: Translation.tr("Upload")
-                    tint: root.memoryTint
+                    tint: IrisStyle.secondaryAccent
                     value: root.uploadShare
                     figure: root.rateParts(root.uploadRate).value
                     unit: root.rateParts(root.uploadRate).unit
