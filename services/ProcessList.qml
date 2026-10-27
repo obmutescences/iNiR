@@ -14,6 +14,7 @@ Singleton {
     id: root
 
     property bool active: false
+    property bool paused: false
     property int refreshMs: 2000
     property var processes: []
     property int total: -1
@@ -26,18 +27,26 @@ Singleton {
     }
 
     function refresh(): void {
-        if (!root.active || sampler.running) return
+        if (!root.active || root.paused || sampler.running) return
         sampler.running = true
     }
+    function togglePaused(): void {
+        root.paused = !root.paused
+        if (!root.paused) root.refresh()
+    }
 
+    onPausedChanged: if (root.paused) sampler.running = false
     onActiveChanged: {
         if (root.active) root.refresh()
-        else sampler.running = false
+        else {
+            sampler.running = false
+            root.paused = false
+        }
     }
 
     Timer {
         interval: root.refreshMs
-        running: root.active
+        running: root.active && !root.paused
         repeat: true
         onTriggered: root.refresh()
     }
@@ -51,7 +60,7 @@ Singleton {
     }
 
     function parse(output: string): void {
-        if (!output || output.length === 0) return
+        if (root.paused || !output || output.length === 0) return
         const list = []
         let total = -1
         for (const line of output.split("\n")) {

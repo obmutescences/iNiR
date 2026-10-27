@@ -570,9 +570,9 @@ Item {
     readonly property real heartUncovered: root.grownPage ? Math.max(0, 1 - 2.5 * extension.presentation) : 1
     // The heart's lip is the notch gesture: a bar with the notch off keeps one straight edge.
     readonly property bool swellsHeart: root.layout === "full" && !root.vertical && root.heartShown && root.notch
-    // A bar melted into the frame reads as one body from the screen edge down: its lanes centre in that whole
-    // body, band included, not in the part below the band.
-    readonly property real bandLift: root.zoned && !root.vertical && IrisFrame.framed
+    // A body melted into the frame reads as one from the screen edge down: its content centres in that
+    // whole body, band included, not in the part below the band.
+    readonly property real bandLift: !root.vertical && IrisFrame.framed
         ? IrisFrame.band * Math.min(1, Math.max(0, root.notchness)) / 2 : 0
     readonly property real stripHeight: root.menubar ? Math.max(Math.round(24 * root.d), Math.round(root.compactHeight * 0.72)) : root.compactHeight
     readonly property real notchX: chassis.x + barZones.heartAlong
@@ -630,6 +630,7 @@ Item {
     readonly property bool leftSatelliteShown: root.leftSatelliteRest && !root.inlineExpanded
     readonly property bool leftSatelliteRest: IrisStyle.cluster && !root.zoned && !root.feedback && !root.eventShown
         && !root.floatingSlots.includes("left")
+        && (root.primary !== "media" || (root.options?.mediaBubble ?? true))
         && root.primary !== "idle"
     readonly property bool rightSatelliteShown: root.rightSatelliteRest && !root.inlineExpanded
     function floatsAlone(kind: string): bool { return IrisPieces.floats(Config.options?.iris?.bubbles, kind) }
@@ -1641,7 +1642,7 @@ Item {
                     const outward = root.vertical ? (root.rightEdge ? -translation.x : translation.x)
                         : (root.bottomEdge ? -translation.y : translation.y)
                     const delta = outward / Math.max(0.01, root.d)
-                    resizeDrag.write.push(Math.round(Math.max(32, Math.min(64, resizeDrag.startHeight + delta))))
+                    resizeDrag.write.push(Math.round(Math.max(16, Math.min(64, resizeDrag.startHeight + delta))))
                 }
             }
         }
@@ -2033,7 +2034,7 @@ Item {
                 Component.onCompleted: root.barPiecesExtent = extent
                 x: root.vertical ? Math.round((parent.width - width) / 2)
                     : root.piecesAtStart ? Math.round(12 * root.d) : parent.width - width - Math.round(12 * root.d)
-                y: !root.vertical ? Math.round((parent.height - height) / 2)
+                y: !root.vertical ? Math.round((parent.height - height) / 2) + (root.bottomEdge ? 1 : -1) * Math.round(root.bandLift)
                     : root.piecesAtStart ? Math.round(12 * root.d) : parent.height - height - Math.round(12 * root.d)
                 spacing: root.barPieceGap
                 visible: root.barPieces.length > 0 && !root.inlineExpanded && !root.zoned

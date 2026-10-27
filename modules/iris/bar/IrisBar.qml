@@ -33,7 +33,7 @@ Scope {
 
     readonly property var options: Config.options?.iris?.bar ?? ({})
     readonly property string edge: IrisFrame.islandEdge
-    readonly property int barHeight: Math.max(32, Math.round(Number(root.options?.height ?? 42) * IrisStyle.density))
+    readonly property int barHeight: Math.max(16, Math.round(Number(root.options?.height ?? 42) * IrisStyle.density))
     readonly property int restMargin: Math.max(0, Math.round(Number(root.options?.margin ?? 8) * IrisStyle.density))
     readonly property int outerMargin: (root.options?.notch ?? false) ? 0 : root.restMargin
     signal islandRequested(bool expanded, string page)

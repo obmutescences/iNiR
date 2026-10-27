@@ -451,7 +451,7 @@ ShellRoot {
         function open(): void { GlobalStates.centerPanelOpen = true }
         function tab(index: string): string {
             const value = parseInt(index)
-            if (!isNaN(value) && value >= 0 && value <= 4)
+            if (!isNaN(value) && value >= 0 && value <= 5)
                 GlobalStates.centerPanelTab = value
             return String(GlobalStates.centerPanelTab)
         }

@@ -2898,6 +2898,8 @@ Singleton {
                 property bool keepLoaded: false
                 property real widthRatio: 0.4667 // Panel width as fraction of screen width
                 property real heightRatio: 0.5333 // Panel height as fraction of screen height
+                // "fade" | "spin" | "unfold" | "drop" | "aperture"
+                property string animation: "fade"
             }
             // Dashboard hub panel (ii family). Widget ids per column:
             //   welcome, clock, weather, calendar, agenda, media, notifications,
@@ -4179,6 +4181,7 @@ Singleton {
                     property bool scrollBubbles: true // The scroll action also works over the bubbles beside the Island
                     property bool events: true // Charger, Bluetooth, Do Not Disturb and keyboard events in the Island
                     property string trailing: "controls" // Cluster trailing bubble: "controls", "notifications", "weather", "sound", "mic" or "none"
+                    property bool mediaBubble: true // Media ring beside a Cluster Island; off hides it while the Island stays
                     property int height: 42
                     property int margin: 8
                     property bool autoHide: false // Rest the pointer at the Island's edge to bring it back

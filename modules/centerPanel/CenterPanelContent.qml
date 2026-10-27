@@ -42,10 +42,11 @@ Item {
     }
     readonly property var tabs: [
         { label: Translation.tr("Overview"), key: "overview", source: "pages/OverviewPage.qml" },
+        { label: Translation.tr("Tray"), key: "tray", source: "pages/TrayPage.qml" },
         { label: Translation.tr("Now Playing"), key: "player", source: "pages/PlayerPage.qml" },
         { label: Translation.tr("Audio"), key: "audio", source: "pages/AudioPage.qml" },
-        { label: Translation.tr("Calendar"), key: "calendar", source: "pages/CalendarPage.qml" },
-        { label: Translation.tr("Processes"), key: "processes", source: "pages/ProcessesPage.qml" }
+        { label: Translation.tr("Processes"), key: "processes", source: "pages/ProcessesPage.qml" },
+        { label: Translation.tr("Calendar"), key: "calendar", source: "pages/CalendarPage.qml" }
     ]
     readonly property color tabInk: IrisStyle.text
     readonly property color tabMuted: IrisStyle.subtext
@@ -102,7 +103,7 @@ Item {
                         + (Lunar.lunarName(root.now).length > 0 ? " · " + Lunar.lunarName(root.now) : "")
                     color: IrisStyle.secondaryAccent
                     font.family: IrisStyle.fontMain
-                    font.pixelSize: IrisStyle.typeFootnote
+                    font.pixelSize: IrisStyle.typeLabel
                 }
             }
 
@@ -237,6 +238,11 @@ Item {
         sequence: "5"
         enabled: GlobalStates.centerPanelOpen
         onActivated: GlobalStates.centerPanelTab = 4
+    }
+    Shortcut {
+        sequence: "6"
+        enabled: GlobalStates.centerPanelOpen
+        onActivated: GlobalStates.centerPanelTab = 5
     }
 
     Component.onCompleted: {

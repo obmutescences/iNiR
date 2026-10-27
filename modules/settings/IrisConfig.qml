@@ -200,7 +200,7 @@ ContentPage {
                             icon: "height"
                             text: Translation.tr("Height")
                             value: Config.options?.iris?.bar?.height ?? 42
-                            from: 32
+                            from: 16
                             to: 64
                             onValueChanged: Config.setNestedValue("iris.bar.height", value)
                         }

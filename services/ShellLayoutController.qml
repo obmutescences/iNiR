@@ -310,7 +310,7 @@ Singleton {
         if (root._panelEnabled("irisBar")
                 && root._outputEnabled(iris.bar?.screenList ?? [], outputName)
                 && (GlobalStates.barOpen ?? true)) {
-            const height = Math.max(32, Math.round(Number(iris.bar?.height ?? 42) * density))
+            const height = Math.max(16, Math.round(Number(iris.bar?.height ?? 42) * density))
             const margin = (iris.bar?.notch ?? false) ? 0 : Math.round(Number(iris.bar?.margin ?? 8) * density)
             root._applyInset(result, barEdge, height + margin * 2)
         }

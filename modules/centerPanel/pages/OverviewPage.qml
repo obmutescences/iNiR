@@ -20,6 +20,7 @@ Item {
     readonly property real cardRadius: IrisStyle.radiusCard
     readonly property color cpuTint: ResourceUsage.cpuUsage >= 0.9 ? IrisStyle.danger : IrisStyle.accent
     readonly property color memoryTint: ResourceUsage.memoryUsedPercentage >= 0.9 ? IrisStyle.danger : IrisStyle.secondaryAccent
+    readonly property color gpuTint: IrisStyle.identity.purple
     readonly property color diskTint: IrisStyle.success
 
     readonly property real diskRatio: root.diskTotalBytes > 0
@@ -161,7 +162,7 @@ Item {
         spacing: root.gap
 
         LiquidCard {
-            width: (topRow.width - root.gap * 2) / 3
+            width: (topRow.width - root.gap * 3) / 4
             height: topRow.height
             radius: root.cardRadius
             title: Translation.tr("CPU")
@@ -175,7 +176,7 @@ Item {
             animating: root.active
         }
         LiquidCard {
-            width: (topRow.width - root.gap * 2) / 3
+            width: (topRow.width - root.gap * 3) / 4
             height: topRow.height
             radius: root.cardRadius
             title: Translation.tr("Memory")
@@ -187,8 +188,23 @@ Item {
             tint: root.memoryTint
             animating: root.active
         }
+        // 与官方桌面组件一致：取 ResourceUsage 的 GPU 读数（sysfs / nvidia-smi / intel_gpu_top）。
         LiquidCard {
-            width: (topRow.width - root.gap * 2) / 3
+            width: (topRow.width - root.gap * 3) / 4
+            height: topRow.height
+            radius: root.cardRadius
+            title: Translation.tr("GPU")
+            value: ResourceUsage.gpuUsage
+            figure: String(Math.round(ResourceUsage.gpuUsage * 100))
+            detail: ResourceUsage.gpuMemoryUsedGb >= 0 && ResourceUsage.gpuMemoryTotalGb > 0
+                ? ResourceUsage.gpuMemoryUsedGb.toFixed(1) + " / "
+                    + ResourceUsage.gpuMemoryTotalGb.toFixed(1) + " GB" : ""
+            badge: ResourceUsage.gpuTemp > 0 ? ResourceUsage.gpuTemp + " °C" : ""
+            tint: root.gpuTint
+            animating: root.active
+        }
+        LiquidCard {
+            width: (topRow.width - root.gap * 3) / 4
             height: topRow.height
             radius: root.cardRadius
             title: Translation.tr("Disk")

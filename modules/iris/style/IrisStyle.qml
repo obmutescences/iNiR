@@ -796,12 +796,12 @@ QtObject {
     }
     readonly property int fuse: Math.max(2, Math.round(8 * root.density * root.meltDepth))
     readonly property int fuseDeep: Math.max(4, Math.round(30 * root.density * root.meltDepth))
-    readonly property real islandBandScale: Math.max(32, Math.min(64, Number(root.options?.bar?.height ?? 42))) / 42
+    readonly property real islandBandScale: Math.max(16, Math.min(64, Number(root.options?.bar?.height ?? 42))) / 42
     readonly property int fuseEdge: Math.max(8, Math.round(56 * root.density * root.islandBandScale
         * Math.max(0.2, Math.min(2, Number(root.options?.bar?.notchCurve ?? 100) / 100))))
     readonly property int weld: Math.max(2, Math.round(3 * root.density))
     function edgeFuseFor(size: real, curve: real): int {
-        const scale = Math.max(32, Math.min(64, size / root.density)) / 42
+        const scale = Math.max(16, Math.min(64, size / root.density)) / 42
         return Math.max(8, Math.round(56 * root.density * scale * Math.max(0.2, Math.min(2, curve / 100))))
     }
     readonly property string pieceShape: String(root.theme?.pieceShape ?? "circle")

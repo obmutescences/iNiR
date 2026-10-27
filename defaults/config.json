@@ -1440,7 +1440,8 @@
         "enable": true,
         "keepLoaded": false,
         "widthRatio": 0.4667,
-        "heightRatio": 0.5333
+        "heightRatio": 0.5333,
+        "animation": "fade"
     },
     "settingsUi": {
         "overlayMode": true,
@@ -2645,6 +2646,7 @@
             "events": true,
             "scrollBubbles": true,
             "trailing": "controls",
+            "mediaBubble": true,
             "height": 42,
             "margin": 8,
             "autoHide": false,

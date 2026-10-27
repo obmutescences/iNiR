@@ -19,7 +19,7 @@ Item {
     readonly property var rows: ProcessList.sorted
     readonly property real maxCpu: root.rows.reduce(
         (max, process) => Math.max(max, Number(process.cpu) || 0), 1)
-    readonly property real rowHeight: Math.round(26 * IrisStyle.density)
+    readonly property real rowHeight: Math.round(30 * IrisStyle.density)
     readonly property real cpuWidth: Math.round(150 * IrisStyle.density)
     readonly property real memWidth: Math.round(90 * IrisStyle.density)
 
@@ -41,6 +41,14 @@ Item {
     onActiveChanged: ProcessList.active = root.active
     Component.onCompleted: ProcessList.active = root.active
     Component.onDestruction: ProcessList.active = false
+
+    // A pause is for picking a row: closing the panel gives the list its updates back.
+    Connections {
+        target: GlobalStates
+        function onCenterPanelOpenChanged(): void {
+            if (!GlobalStates.centerPanelOpen) ProcessList.paused = false
+        }
+    }
 
     Item {
         id: header
@@ -94,8 +102,32 @@ Item {
             }
         }
 
-        Text {
+        Rectangle {
+            id: pauseButton
             anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: pauseLabel.implicitWidth + Math.round(22 * IrisStyle.density)
+            height: Math.round(30 * IrisStyle.density)
+            radius: height / 2
+            color: ProcessList.paused ? IrisStyle.accent : IrisStyle.fill
+            Text {
+                id: pauseLabel
+                anchors.centerIn: parent
+                text: ProcessList.paused ? Translation.tr("Resume updates") : Translation.tr("Pause updates")
+                color: ProcessList.paused ? IrisStyle.inkOnAccent : IrisStyle.subtext
+                font.family: IrisStyle.fontMain
+                font.pixelSize: IrisStyle.typeFootnote
+            }
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ProcessList.togglePaused()
+            }
+        }
+
+        Text {
+            anchors.right: pauseButton.left
+            anchors.rightMargin: Math.round(12 * IrisStyle.density)
             anchors.verticalCenter: parent.verticalCenter
             text: ProcessList.total >= 0
                 ? Translation.tr("%1 processes").arg(ProcessList.total) : ""
@@ -119,7 +151,7 @@ Item {
             text: Translation.tr("Process")
             color: IrisStyle.muted
             font.family: IrisStyle.fontMain
-            font.pixelSize: IrisStyle.typeCaption
+            font.pixelSize: IrisStyle.typeFootnote
         }
         Text {
             anchors.right: parent.right
@@ -128,7 +160,7 @@ Item {
             text: "PID"
             color: IrisStyle.muted
             font.family: IrisStyle.fontMain
-            font.pixelSize: IrisStyle.typeCaption
+            font.pixelSize: IrisStyle.typeFootnote
         }
         Text {
             anchors.right: parent.right
@@ -137,7 +169,7 @@ Item {
             text: Translation.tr("CPU")
             color: IrisStyle.muted
             font.family: IrisStyle.fontMain
-            font.pixelSize: IrisStyle.typeCaption
+            font.pixelSize: IrisStyle.typeFootnote
         }
         Text {
             anchors.right: parent.right
@@ -146,7 +178,7 @@ Item {
             text: Translation.tr("Memory")
             color: IrisStyle.muted
             font.family: IrisStyle.fontMain
-            font.pixelSize: IrisStyle.typeCaption
+            font.pixelSize: IrisStyle.typeFootnote
         }
     }
 
@@ -198,7 +230,7 @@ Item {
                 text: row.modelData.name
                 color: IrisStyle.text
                 font.family: IrisStyle.fontMain
-                font.pixelSize: IrisStyle.typeFootnote
+                font.pixelSize: IrisStyle.typeLabel
                 elide: Text.ElideRight
             }
             Text {
@@ -209,7 +241,7 @@ Item {
                 text: row.modelData.pid
                 color: IrisStyle.muted
                 font.family: IrisStyle.fontNumbers
-                font.pixelSize: IrisStyle.typeFootnote
+                font.pixelSize: IrisStyle.typeMeta
             }
 
             Item {
@@ -241,7 +273,7 @@ Item {
                     text: Number(row.modelData.cpu).toFixed(1)
                     color: IrisStyle.text
                     font.family: IrisStyle.fontNumbers
-                    font.pixelSize: IrisStyle.typeCaption
+                    font.pixelSize: IrisStyle.typeMeta
                 }
             }
 
@@ -255,7 +287,7 @@ Item {
                 text: root.memoryText(row.modelData.memory)
                 color: IrisStyle.subtext
                 font.family: IrisStyle.fontNumbers
-                font.pixelSize: IrisStyle.typeCaption
+                font.pixelSize: IrisStyle.typeMeta
             }
 
             Rectangle {

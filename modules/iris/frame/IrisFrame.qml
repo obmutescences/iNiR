@@ -100,7 +100,7 @@ QtObject {
         Qt.callLater(() => { root.settledIsland = root.islandEdge; root.settledDock = root.dockEdge })
     }
     readonly property bool notch: Boolean(root.bar?.notch ?? false)
-    readonly property real islandFullBand: Math.max(32, Math.round(Number(root.bar?.height ?? 42) * root.d))
+    readonly property real islandFullBand: Math.max(16, Math.round(Number(root.bar?.height ?? 42) * root.d))
     // A menu bar gives windows back all but its strip: the notch hangs over them.
     readonly property bool islandMenubar: String(root.bar?.layout ?? "island") === "menubar" && !root.vertical(root.islandEdge)
     readonly property real islandBand: root.islandMenubar
