@@ -7,6 +7,7 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.functions
+import qs.modules.common.widgets
 import qs.modules.iris.style
 import qs.modules.iris.components
 import "pages"
@@ -17,7 +18,20 @@ Item {
     property int tab: GlobalStates.centerPanelTab
     focus: GlobalStates.centerPanelOpen
 
+    // 电源动作先落到这里，确认后才执行；空字符串表示没有待确认动作。
+    property string pendingPowerAction: ""
+    readonly property bool powerConfirmOpen: root.pendingPowerAction.length > 0
+    readonly property string powerActionLabel: root.pendingPowerAction === "reboot" ? Translation.tr("Restart")
+        : root.pendingPowerAction === "logout" ? Translation.tr("Log Out") : Translation.tr("Shut Down")
+    readonly property string powerActionIcon: root.pendingPowerAction === "reboot" ? "restart_alt"
+        : root.pendingPowerAction === "logout" ? "logout" : "power_settings_new"
+
     Keys.onPressed: (event) => {
+        if (root.powerConfirmOpen) {
+            if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
+                event.accepted = true
+            return
+        }
         if (event.key === Qt.Key_Tab) {
             GlobalStates.centerPanelTab = (root.tab + 1) % root.tabs.length
             event.accepted = true
@@ -32,6 +46,8 @@ Item {
         function onCenterPanelOpenChanged() {
             if (GlobalStates.centerPanelOpen)
                 Qt.callLater(() => root.forceActiveFocus())
+            else
+                root.pendingPowerAction = ""
         }
     }
     property int nowTick: 0
@@ -57,6 +73,22 @@ Item {
     }
     function closePanel(): void {
         GlobalStates.centerPanelOpen = false
+    }
+    function askPowerAction(action: string): void {
+        root.pendingPowerAction = action
+        Qt.callLater(() => root.forceActiveFocus())
+    }
+    function cancelPowerAction(): void {
+        root.pendingPowerAction = ""
+    }
+    function confirmPowerAction(): void {
+        const action = root.pendingPowerAction
+        if (action.length === 0) return
+        root.pendingPowerAction = ""
+        root.closePanel()
+        if (action === "reboot") Session.reboot()
+        else if (action === "logout") Session.logout()
+        else Session.poweroff()
     }
 
     Timer {
@@ -171,24 +203,15 @@ Item {
                 }
                 IrisIconButton {
                     materialIcon: "power_settings_new"
-                    onClicked: {
-                        root.closePanel()
-                        GlobalStates.sessionOpen = true
-                    }
+                    onClicked: root.askPowerAction("poweroff")
                 }
                 IrisIconButton {
                     materialIcon: "restart_alt"
-                    onClicked: {
-                        root.closePanel()
-                        Session.reboot()
-                    }
+                    onClicked: root.askPowerAction("reboot")
                 }
                 IrisIconButton {
                     materialIcon: "logout"
-                    onClicked: {
-                        root.closePanel()
-                        Session.poweroff()
-                    }
+                    onClicked: root.askPowerAction("logout")
                 }
             }
         }
@@ -214,34 +237,135 @@ Item {
         }
     }
 
+    // 电源动作的二次确认：盖住整个内容区，点遮罩取消，点卡片内不穿透。
+    Rectangle {
+        id: powerConfirm
+        anchors.fill: parent
+        z: 50
+        visible: root.powerConfirmOpen
+        color: IrisStyle.scrim
+        opacity: visible ? 1 : 0
+        Behavior on opacity {
+            NumberAnimation { duration: IrisStyle.duration(140) }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.cancelPowerAction()
+        }
+
+        IrisSurface {
+            anchors.centerIn: parent
+            width: Math.min(Math.round(340 * IrisStyle.density),
+                parent.width - Math.round(40 * IrisStyle.density))
+            height: powerDialog.implicitHeight + Math.round(44 * IrisStyle.density)
+            radius: IrisStyle.radiusPlate
+            raised: true
+            scale: root.powerConfirmOpen ? 1 : 0.96
+            Behavior on scale {
+                NumberAnimation { duration: IrisStyle.duration(140); easing.type: Easing.OutCubic }
+            }
+
+            MouseArea { anchors.fill: parent }
+
+            ColumnLayout {
+                id: powerDialog
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Math.round(22 * IrisStyle.density)
+                anchors.rightMargin: Math.round(22 * IrisStyle.density)
+                spacing: 0
+
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    width: Math.round(50 * IrisStyle.density)
+                    height: width
+                    radius: width / 2
+                    color: IrisStyle.tintFill(IrisStyle.danger)
+
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: root.powerActionIcon
+                        iconSize: Math.round(25 * IrisStyle.density)
+                        color: IrisStyle.danger
+                    }
+                }
+
+                IrisText {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Math.round(14 * IrisStyle.density)
+                    horizontalAlignment: Text.AlignHCenter
+                    text: root.powerActionLabel + "?"
+                    font.pixelSize: IrisStyle.typeTitle
+                    font.weight: IrisStyle.weight(Font.DemiBold)
+                }
+                IrisText {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Math.round(6 * IrisStyle.density)
+                    horizontalAlignment: Text.AlignHCenter
+                    text: Translation.tr("Unsaved changes may be lost.")
+                    color: IrisStyle.subtext
+                    font.pixelSize: IrisStyle.typeMeta
+                    wrapMode: Text.Wrap
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Math.round(20 * IrisStyle.density)
+                    spacing: Math.round(8 * IrisStyle.density)
+
+                    IrisButton {
+                        Layout.fillWidth: true
+                        implicitHeight: Math.round(34 * IrisStyle.density)
+                        buttonRadius: IrisStyle.radiusRow
+                        colBackground: IrisStyle.fill
+                        colBackgroundHover: IrisStyle.fillHover
+                        text: Translation.tr("Cancel")
+                        onClicked: root.cancelPowerAction()
+                    }
+                    IrisButton {
+                        Layout.fillWidth: true
+                        implicitHeight: Math.round(34 * IrisStyle.density)
+                        buttonRadius: IrisStyle.radiusRow
+                        emphasized: true
+                        danger: true
+                        text: root.powerActionLabel
+                        onClicked: root.confirmPowerAction()
+                    }
+                }
+            }
+        }
+    }
+
     Shortcut {
         sequence: "1"
-        enabled: GlobalStates.centerPanelOpen
+        enabled: GlobalStates.centerPanelOpen && !root.powerConfirmOpen
         onActivated: GlobalStates.centerPanelTab = 0
     }
     Shortcut {
         sequence: "2"
-        enabled: GlobalStates.centerPanelOpen
+        enabled: GlobalStates.centerPanelOpen && !root.powerConfirmOpen
         onActivated: GlobalStates.centerPanelTab = 1
     }
     Shortcut {
         sequence: "3"
-        enabled: GlobalStates.centerPanelOpen
+        enabled: GlobalStates.centerPanelOpen && !root.powerConfirmOpen
         onActivated: GlobalStates.centerPanelTab = 2
     }
     Shortcut {
         sequence: "4"
-        enabled: GlobalStates.centerPanelOpen
+        enabled: GlobalStates.centerPanelOpen && !root.powerConfirmOpen
         onActivated: GlobalStates.centerPanelTab = 3
     }
     Shortcut {
         sequence: "5"
-        enabled: GlobalStates.centerPanelOpen
+        enabled: GlobalStates.centerPanelOpen && !root.powerConfirmOpen
         onActivated: GlobalStates.centerPanelTab = 4
     }
     Shortcut {
         sequence: "6"
-        enabled: GlobalStates.centerPanelOpen
+        enabled: GlobalStates.centerPanelOpen && !root.powerConfirmOpen
         onActivated: GlobalStates.centerPanelTab = 5
     }
 

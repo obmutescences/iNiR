@@ -141,16 +141,21 @@ PanelWindow {
     Shortcut {
         sequence: "Escape"
         enabled: root.open
-        onActivated: root.hide()
+        onActivated: {
+            if (content.item?.powerConfirmOpen ?? false)
+                content.item.cancelPowerAction()
+            else
+                root.hide()
+        }
     }
     Shortcut {
         sequence: "Tab"
-        enabled: root.open
+        enabled: root.open && !(content.item?.powerConfirmOpen ?? false)
         onActivated: GlobalStates.centerPanelTab = (GlobalStates.centerPanelTab + 1) % 6
     }
     Shortcut {
         sequence: "Shift+Tab"
-        enabled: root.open
+        enabled: root.open && !(content.item?.powerConfirmOpen ?? false)
         onActivated: GlobalStates.centerPanelTab = (GlobalStates.centerPanelTab + 5) % 6
     }
 
