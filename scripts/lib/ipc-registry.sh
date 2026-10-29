@@ -2,8 +2,8 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: aa0cd9a9782a3c34
-# Targets: 73
+# IPC.md hash: 330e395481eff985
+# Targets: 75
 
 declare -gA IPC_TARGET_DESC=(
   [ai]="Shared multi-provider AI service. It supports Gemini, OpenAI-compatible chat and Responses APIs, Mistral and Anthropic; live provider catalogs are normalized into capability-aware model records. Catalog visibility is separate from execution readiness, so public model lists remain browseable without pretending an API key exists. OpenCode Zen and Go resolve their current model lists and per-model API routes dynamically. Normal shell tools use typed actions and approval cards, while arbitrary commands are isolated in Advanced mode."
@@ -16,6 +16,7 @@ declare -gA IPC_TARGET_DESC=(
   [battery]="The laptop battery as every family shows it. \`simulate\` lets you see the battery surfaces on a machine without one."
   [bluetooth]="The Bluetooth adapter as every family shows it. \`simulate\` lets you see the Bluetooth surfaces without the hardware."
   [brightness]="Display brightness control."
+  [centerPanel]=""
   [cheatsheet]="Keyboard shortcuts reference. For when you forget what you just configured five minutes ago."
   [clipboard]="Clipboard history panel. Because Ctrl+V only remembers one thing, and that's not enough for power users."
   [cliphistService]="Clipboard history service. The backend that makes clipboard panel work. You probably don't need to call this directly."
@@ -74,6 +75,7 @@ declare -gA IPC_TARGET_DESC=(
   [wbar]="Waffle taskbar visibility."
   [widgetStacks]="iRiS widget stacks: several desktop widgets sharing one place, one page shown at a time. Service: \`services/DesktopWidgetStacks.qml\`. Applies while the widgets wear the iRiS design."
   [widgetpower]="Desktop-widget power management (pauses widget rendering on game mode, fullscreen, present windows, or edit mode). Service: \`services/WidgetPowerManager.qml\`."
+  [windowsPicker]="Every window on the current output shrinks into a grid. Each card carries a letter keycap; press it to focus that window. Esc, a click on the background, or clicking a card closes the picker. Windows fly out of and back into their on-screen positions."
   [wnotificationCenter]="Waffle notification center."
   [workspaceStrip]="Workspace edge strip. Shows a compact per-workspace rail and expands it for switching without opening the full overview."
   [wwidgets]="Waffle widgets panel."
@@ -92,6 +94,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [battery]="shared"
   [bluetooth]="shared"
   [brightness]="shared"
+  [centerPanel]="shared"
   [cheatsheet]="shared"
   [clipboard]="shared"
   [cliphistService]="shared"
@@ -150,6 +153,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [wbar]="waffle"
   [widgetStacks]="waffle"
   [widgetpower]="waffle"
+  [windowsPicker]="shared"
   [wnotificationCenter]="waffle"
   [workspaceStrip]="shared"
   [wwidgets]="waffle"
@@ -168,6 +172,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [battery]="status simulate"
   [bluetooth]="status simulate"
   [brightness]="increment decrement refresh set status sleepBegin restoreAfterWake"
+  [centerPanel]="toggle close open tab status"
   [cheatsheet]="toggle close open"
   [clipboard]="open close toggle"
   [cliphistService]="update"
@@ -226,6 +231,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [wbar]="toggle close open"
   [widgetStacks]="status create add remove dissolve page move rotate interval"
   [widgetpower]="status"
+  [windowsPicker]="toggle open close status"
   [wnotificationCenter]="toggle close open"
   [workspaceStrip]="open close toggle status"
   [wwidgets]="toggle close open"
@@ -303,6 +309,11 @@ declare -gA IPC_FUNCTION_DESC=(
   ["brightness:status"]="Each output: how it is driven (DDC bus or backlight), the shell's level and the last hardware level written (\`-1\` until the first write)"
   ["brightness:sleepBegin"]=""
   ["brightness:restoreAfterWake"]=""
+  ["centerPanel:toggle"]=""
+  ["centerPanel:close"]=""
+  ["centerPanel:open"]=""
+  ["centerPanel:tab"]=""
+  ["centerPanel:status"]=""
   ["cheatsheet:toggle"]="Open/close cheatsheet"
   ["cheatsheet:close"]="Hide cheatsheet overlay"
   ["cheatsheet:open"]="Show cheatsheet overlay"
@@ -644,6 +655,10 @@ declare -gA IPC_FUNCTION_DESC=(
   ["widgetStacks:rotate"]="\`on\` or \`off\`: the stack turns its own pages"
   ["widgetStacks:interval"]="Seconds between turns (5 to 3600)"
   ["widgetpower:status"]="Returns JSON: \`enabled\`, \`widgetsActive\`, \`pauseReason\`, and the active \`triggers\` (gameMode, fullscreen, windowsPresent, editMode)"
+  ["windowsPicker:toggle"]="Open, or close if already open"
+  ["windowsPicker:open"]="Open on the focused output"
+  ["windowsPicker:close"]="Scatter every card back and unmap"
+  ["windowsPicker:status"]="JSON: open, output, appearance, card count, active prefix"
   ["wnotificationCenter:toggle"]="Open/close notification center"
   ["wnotificationCenter:close"]="Close notification center"
   ["wnotificationCenter:open"]="Open notification center"
@@ -693,6 +708,7 @@ declare -gA IPC_FUNCTION_ARGS=(
   ["battery:simulate"]="<spec>"
   ["bluetooth:simulate"]="<state>"
   ["brightness:set"]="<percent>"
+  ["centerPanel:tab"]="<index>"
   ["closeConfirm:triggerWindow"]="<windowId> <appId>"
   ["colorMode:set"]="<mode>"
   ["connections:sample"]="<kind>"
@@ -936,18 +952,20 @@ Ctrl+Shift+S { spawn "inir" "region" "menu"; }'
   [wallpaperSelector]='Ctrl+Alt+T { spawn "inir" "wallpaperSelector" "toggle"; }
 Ctrl+Alt+L { spawn "inir" "wallpaperSelector" "browse" "live" "-"; }
 Ctrl+Alt+A { spawn "inir" "wallpaperSelector" "openLauncher" "animated"; }'
+  [windowsPicker]='Mod+Tab repeat=false { spawn "inir" "windowsPicker" "toggle"; }'
   [workspaceStrip]='Super+Tab { spawn "inir" "workspaceStrip" "toggle"; }'
   [ytmusic]='Mod+M+Space { spawn "inir" "ytmusic" "playPause"; }'
 )
 
-IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio autostart background bar battery bluetooth brightness cheatsheet clipboard cliphistService closeConfirm colorMode connections controlPanel coverflowSelector customWidgets dashboard dev equalizer gamemode globalActions globalStyle iris keyboard lock loginScreen mascot mascotMood mediaControls memory minimize mpris network niriAnimations notifications orbit osd osdVolume osk overlay overview packageSearch panelFamily pill recordingOsd region search session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch vpn wactionCenter waffleAltSwitcher wallpaperLauncher wallpaperSelector wbar widgetStacks widgetpower wnotificationCenter workspaceStrip wwidgets ytmusic zoom)
-IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio background bar battery bluetooth brightness cheatsheet clipboard cliphistService closeConfirm colorMode connections controlPanel coverflowSelector dashboard dev gamemode globalActions globalStyle iris keyboard lock loginScreen mascot mascotMood mediaControls memory minimize mpris network niriAnimations notifications orbit osd osdVolume osk overlay overview packageSearch panelFamily pill region session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch vpn wallpaperLauncher wallpaperSelector workspaceStrip ytmusic zoom)
+IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio autostart background bar battery bluetooth brightness centerPanel cheatsheet clipboard cliphistService closeConfirm colorMode connections controlPanel coverflowSelector customWidgets dashboard dev equalizer gamemode globalActions globalStyle iris keyboard lock loginScreen mascot mascotMood mediaControls memory minimize mpris network niriAnimations notifications orbit osd osdVolume osk overlay overview packageSearch panelFamily pill recordingOsd region search session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch vpn wactionCenter waffleAltSwitcher wallpaperLauncher wallpaperSelector wbar widgetStacks widgetpower windowsPicker wnotificationCenter workspaceStrip wwidgets ytmusic zoom)
+IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio background bar battery bluetooth brightness centerPanel cheatsheet clipboard cliphistService closeConfirm colorMode connections controlPanel coverflowSelector dashboard dev gamemode globalActions globalStyle iris keyboard lock loginScreen mascot mascotMood mediaControls memory minimize mpris network niriAnimations notifications orbit osd osdVolume osk overlay overview packageSearch panelFamily pill region session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch vpn wallpaperLauncher wallpaperSelector windowsPicker workspaceStrip ytmusic zoom)
 IPC_II_TARGETS=(equalizer)
 IPC_WAFFLE_TARGETS=(autostart customWidgets recordingOsd search wactionCenter waffleAltSwitcher wbar widgetStacks widgetpower wnotificationCenter wwidgets)
 
 declare -gA IPC_KEBAB_ALIASES=(
   [alt-switcher]=altSwitcher
   [app-catalog]=appCatalog
+  [center-panel]=centerPanel
   [cliphist-service]=cliphistService
   [close-confirm]=closeConfirm
   [color-mode]=colorMode
@@ -975,6 +993,7 @@ declare -gA IPC_KEBAB_ALIASES=(
   [wallpaper-launcher]=wallpaperLauncher
   [wallpaper-selector]=wallpaperSelector
   [widget-stacks]=widgetStacks
+  [windows-picker]=windowsPicker
   [wnotification-center]=wnotificationCenter
   [workspace-strip]=workspaceStrip
 )

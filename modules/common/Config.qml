@@ -2832,6 +2832,15 @@ Singleton {
                 property bool enabled: false
             }
 
+            property JsonObject windowsPicker: JsonObject {
+                property bool enable: true
+                property string appearance: "fly"
+                property string gather: "cascade"
+                property string panel: "none"
+                property string cardSize: "auto"
+                property string letters: "asdfghjkl"
+            }
+
             property JsonObject conflictKiller: JsonObject {
                 property bool autoKillNotificationDaemons: false
                 property bool autoKillTrays: false

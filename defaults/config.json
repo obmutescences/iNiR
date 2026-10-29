@@ -1359,6 +1359,14 @@
     "closeConfirm": {
         "enabled": false
     },
+    "windowsPicker": {
+        "enable": true,
+        "appearance": "fly",
+        "gather": "cascade",
+        "panel": "none",
+        "cardSize": "auto",
+        "letters": "asdfghjkl"
+    },
     "conflictKiller": {
         "autoKillNotificationDaemons": true,
         "autoKillTrays": true

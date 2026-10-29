@@ -362,6 +362,25 @@ By default, confirmation is disabled (closes immediately). Enable it in settings
 
 ---
 
+### windowsPicker
+
+Every window on the current output shrinks into a grid. Each card carries a letter keycap; press it to focus that window. Esc, a click on the background, or clicking a card closes the picker. Windows fly out of and back into their on-screen positions.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open, or close if already open |
+| `open` | Open on the focused output |
+| `close` | Scatter every card back and unmap |
+| `status` | JSON: open, output, appearance, card count, focused card id, active prefix |
+
+```kdl
+Mod+Tab repeat=false { spawn "inir" "windowsPicker" "toggle"; }
+```
+
+Letters are configurable (`windowsPicker.letters`, default `asdfghjkl`). When there are more windows than letters, every window gets a two-letter code instead (e.g. `AE`) and the first key narrows the candidates.
+
+---
+
 ### settings
 
 Open or toggle the settings window. GUI config so you don't have to edit JSON by hand.

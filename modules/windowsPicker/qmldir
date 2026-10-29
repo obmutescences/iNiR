@@ -1,0 +1,3 @@
+module qs.modules.windowsPicker
+WindowsPicker 1.0 WindowsPicker.qml
+WindowCard 1.0 WindowCard.qml

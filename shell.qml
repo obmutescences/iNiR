@@ -915,6 +915,9 @@ ShellRoot {
     // Close confirmation dialog (always loaded, handles IPC)
     LazyLoader { active: Config.ready; source: "modules/closeConfirm/CloseConfirm.qml" }
 
+    // Window picker: grid of every window on the output, letter jump, IPC target windowsPicker.
+    LazyLoader { active: Config.ready; source: "modules/windowsPicker/WindowsPicker.qml" }
+
     // Shared (always loaded via ToastManager)
     ToastManager {}
 
